@@ -19,27 +19,28 @@ export class Player {
     this.seatNumber = seatNumber;
     this.isHost = isHost;
     this.isBot = isBot;
-    this.isReady = isHost || isBot; // 機器人預設已準備
+    this.isReady = isHost || isBot;
 
     // 遊戲內身分與狀態
     this.role = null;
     this.isAlive = true;
-    this.deathReason = null; // 'WEREWOLF' | 'POISON' | 'VOTE' | 'HUNTER'
+    this.deathReason = null; // 'WEREWOLF' | 'POISON' | 'VOTE' | 'HUNTER' | 'KNIGHT' | 'DREAM' | 'LOVER'
     this.deathRound = null;
     this.canVote = true;
 
-    // 女巫技能專用狀態
+    // 技能與特殊狀態
     this.hasUsedAntidote = false;
     this.hasUsedPoison = false;
-
-    // 守衛技能專用狀態
     this.lastGuardedId = null;
-
-    // 獵人技能專用狀態
     this.canShoot = true;
-
-    // 白痴技能專用狀態
     this.isIdiotRevealed = false;
+
+    // 新增神職專用狀態
+    this.hasUsedKnightDuel = false; // 騎士決鬥
+    this.isSilenced = false;        // 禁言長老禁言狀態
+    this.lastSilencedId = null;     // 禁言長老上夜目標
+    this.lastDreamedId = null;      // 攝夢人連續攝夢判定
+    this.loverId = null;            // 邱比特情侶
 
     // 連線狀態
     this.connected = true;
@@ -56,6 +57,11 @@ export class Player {
     this.lastGuardedId = null;
     this.canShoot = true;
     this.isIdiotRevealed = false;
+    this.hasUsedKnightDuel = false;
+    this.isSilenced = false;
+    this.lastSilencedId = null;
+    this.lastDreamedId = null;
+    this.loverId = null;
     this.isReady = this.isHost || this.isBot;
   }
 
@@ -80,6 +86,7 @@ export class Player {
       isReady: this.isReady,
       isAlive: this.isAlive,
       isIdiotRevealed: this.isIdiotRevealed,
+      isSilenced: this.isSilenced,
       canVote: this.canVote,
       deathReason: this.deathReason,
       connected: this.connected,
@@ -94,6 +101,8 @@ export class Player {
       hasUsedPoison: this.hasUsedPoison,
       lastGuardedId: this.lastGuardedId,
       canShoot: this.canShoot,
+      hasUsedKnightDuel: this.hasUsedKnightDuel,
+      loverId: this.loverId,
     };
   }
 

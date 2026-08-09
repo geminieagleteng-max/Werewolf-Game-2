@@ -250,6 +250,12 @@ export class PeerNetwork {
       case SOCKET_EVENTS.ACTION.SEND_CHAT:
         this.hostController.handleSendChat(senderId, payload.message);
         break;
+      case SOCKET_EVENTS.ACTION.CUPID_LINK:
+        this.hostController.handleCupidLink(senderId, payload.target1Id, payload.target2Id);
+        break;
+      case SOCKET_EVENTS.ACTION.DREAMCATCHER_DREAM:
+        this.hostController.handleDreamcatcherDream(senderId, payload.targetId);
+        break;
       case SOCKET_EVENTS.ACTION.GUARD_PROTECT:
         this.hostController.handleGuardProtect(senderId, payload.targetId);
         break;
@@ -261,6 +267,12 @@ export class PeerNetwork {
         break;
       case SOCKET_EVENTS.ACTION.WITCH_ACTION:
         this.hostController.handleWitchAction(senderId, payload);
+        break;
+      case SOCKET_EVENTS.ACTION.SILENCER_SILENCE:
+        this.hostController.handleSilencerSilence(senderId, payload.targetId);
+        break;
+      case SOCKET_EVENTS.ACTION.KNIGHT_DUEL:
+        this.hostController.handleKnightDuel(senderId, payload.targetId);
         break;
       case SOCKET_EVENTS.ACTION.CAST_VOTE:
         this.hostController.handleDayVote(senderId, payload.targetId);

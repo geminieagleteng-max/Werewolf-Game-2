@@ -354,6 +354,38 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  const linkCupidTargets = (target1Id, target2Id) => {
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.CUPID_LINK, { target1Id, target2Id });
+    } else {
+      socket?.emit('action:cupid_link', { target1Id, target2Id });
+    }
+  };
+
+  const dreamcatcherDream = (targetId) => {
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.DREAMCATCHER_DREAM, { targetId });
+    } else {
+      socket?.emit('action:dreamcatcher_dream', { targetId });
+    }
+  };
+
+  const silencerSilence = (targetId) => {
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.SILENCER_SILENCE, { targetId });
+    } else {
+      socket?.emit('action:silencer_silence', { targetId });
+    }
+  };
+
+  const knightDuel = (targetId) => {
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.KNIGHT_DUEL, { targetId });
+    } else {
+      socket?.emit('action:knight_duel', { targetId });
+    }
+  };
+
   const restartGame = () => {
     if (networkMode === 'P2P') {
       peerNetwork.emit(SOCKET_EVENTS.GAME.RESTART);
@@ -400,6 +432,10 @@ export const SocketProvider = ({ children }) => {
         useWitchSkill,
         protectGuardTarget,
         shootHunterTarget,
+        linkCupidTargets,
+        dreamcatcherDream,
+        silencerSilence,
+        knightDuel,
         castDayVote,
         restartGame,
       }}

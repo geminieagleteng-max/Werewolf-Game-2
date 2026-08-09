@@ -8,6 +8,10 @@ const AVAILABLE_CUSTOM_ROLES = [
   { id: 'WITCH', name: '女巫', icon: '🧪', max: 2 },
   { id: 'HUNTER', name: '獵人', icon: '💥', max: 2 },
   { id: 'GUARD', name: '守衛', icon: '🛡️', max: 2 },
+  { id: 'KNIGHT', name: '騎士', icon: '⚔️', max: 2 },
+  { id: 'SILENCER', name: '禁言長老', icon: '🤐', max: 2 },
+  { id: 'DREAMCATCHER', name: '攝夢人', icon: '💤', max: 2 },
+  { id: 'CUPID', name: '邱比特', icon: '💘', max: 2 },
   { id: 'IDIOT', name: '白痴', icon: '🤡', max: 2 },
   { id: 'VILLAGER', name: '村民', icon: '👨‍🌾', max: 8 },
 ];
@@ -29,13 +33,17 @@ export const Lobby = () => {
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('werewolf_player_name') || '玩家一');
   const [roomName, setRoomName] = useState('狼人殺');
-  const [boardPreset, setBoardPreset] = useState('6'); // '6' | '7' | '8' | '9' | 'CUSTOM'
+  const [boardPreset, setBoardPreset] = useState('6'); // '6' | '7' | '8' | '9' | '10' | '12' | 'CUSTOM'
   const [customRoles, setCustomRoles] = useState({
     WEREWOLF: 2,
     SEER: 1,
     WITCH: 1,
     HUNTER: 1,
     GUARD: 1,
+    KNIGHT: 0,
+    SILENCER: 0,
+    DREAMCATCHER: 0,
+    CUPID: 0,
     IDIOT: 0,
     VILLAGER: 2,
   });
@@ -204,11 +212,13 @@ export const Lobby = () => {
                       onChange={(e) => setBoardPreset(e.target.value)}
                       className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs focus:outline-none focus:border-zinc-500 cursor-pointer"
                     >
-                      <option value="6">6 人局 (2狼 1預 1女 1獵 1民)</option>
-                      <option value="7">7 人局 (2狼 1預 1女 1獵 2民)</option>
-                      <option value="8">8 人局 (3狼 1預 1女 1獵 2民)</option>
-                      <option value="9">9 人局 (3狼 1預 1女 1獵 1守 2民)</option>
-                      <option value="CUSTOM">🛠️ 自定義局（自選人數與職業組成）</option>
+                      <option value="6">6 人標準局 (2狼 1預 1女 1獵 1民)</option>
+                      <option value="7">7 人標準局 (2狼 1預 1女 1獵 2民)</option>
+                      <option value="8">8 人標準局 (3狼 1預 1女 1獵 2民)</option>
+                      <option value="9">9 人守衛局 (3狼 1預 1女 1獵 1守 2民)</option>
+                      <option value="10">10 人騎士局 (3狼 1預 1女 1獵 1守 1騎 2民)</option>
+                      <option value="12">12 人標準大局 (4狼 1預 1女 1獵 1守 1騎 3民)</option>
+                      <option value="CUSTOM">🛠️ 自定義局（自選人數與 11 種職業組成）</option>
                     </select>
                   </div>
 
@@ -222,7 +232,7 @@ export const Lobby = () => {
                         </span>
                       </div>
 
-                      <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                         {AVAILABLE_CUSTOM_ROLES.map((r) => {
                           const count = customRoles[r.id] || 0;
                           return (

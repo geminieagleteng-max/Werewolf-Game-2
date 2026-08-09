@@ -1,3 +1,5 @@
+import { ROLES, FACTIONS, ROLE_DEFINITIONS } from './roles';
+
 const BOT_SPEECHES = {
   GENERAL: [
     '我是閉眼好人，昨天的情況大家怎麼看？',
@@ -38,28 +40,37 @@ export function getBotNightAction(botPlayer, game) {
   const alivePlayers = game.players.filter((p) => p.isAlive);
   const otherAlive = alivePlayers.filter((p) => p.id !== botPlayer.id);
 
+  if (botPlayer.role === ROLES.CUPID && game.round === 1) {
+    if (alivePlayers.length >= 2) {
+      const shuffled = [...alivePlayers].sort(() => Math.random() - 0.5);
+      return { type: 'cupid_link', target1Id: shuffled[0].id, target2Id: shuffled[1].id };
+    }
+  }
+
+  if (botPlayer.role === ROLES.DREAMCATCHER) {
+    const validTargets = otherAlive.filter((p) => p.id !== botPlayer.lastDreamedId);
+    const target = validTargets.length > 0 ? validTargets[Math.floor(Math.random() * validTargets.length)] : otherAlive[0];
+    return { type: 'dreamcatcher_dream', targetId: target ? target.id : null };
+  }
+
+  if (botPlayer.role === ROLES.GUARD) {
+    const validTargets = alivePlayers.filter((p) => p.id !== botPlayer.lastGuardedId);
+    const target = validTargets[Math.floor(Math.random() * validTargets.length)];
+    return { type: 'guard_protect', targetId: target ? target.id : null };
+  }
+
   if (botPlayer.role === ROLES.WEREWOLF) {
-    // 狼人優先刀非狼人玩家
     const nonWolves = otherAlive.filter((p) => p.role !== ROLES.WEREWOLF);
     const target = nonWolves.length > 0 ? nonWolves[Math.floor(Math.random() * nonWolves.length)] : otherAlive[0];
     return { type: 'werewolf_select', targetId: target ? target.id : null };
   }
 
   if (botPlayer.role === ROLES.SEER) {
-    // 預言家查驗未查驗過的其他玩家
     const target = otherAlive[Math.floor(Math.random() * otherAlive.length)];
     return { type: 'seer_check', targetId: target ? target.id : null };
   }
 
-  if (botPlayer.role === ROLES.GUARD) {
-    // 守衛守護其他玩家或自己（不可連續守同一人）
-    const validTargets = alivePlayers.filter((p) => p.id !== botPlayer.lastGuardedId);
-    const target = validTargets[Math.floor(Math.random() * validTargets.length)];
-    return { type: 'guard_protect', targetId: target ? target.id : null };
-  }
-
   if (botPlayer.role === ROLES.WITCH) {
-    // 女巫：如果有人中刀且解藥還在，有 80% 機率救人
     const wolfTargetId = game.nightActions.werewolfFinalTargetId;
     let useAntidote = false;
     let poisonTargetId = null;
@@ -67,12 +78,17 @@ export function getBotNightAction(botPlayer, game) {
     if (wolfTargetId && !botPlayer.hasUsedAntidote && Math.random() < 0.8) {
       useAntidote = true;
     } else if (!botPlayer.hasUsedPoison && game.round >= 2 && Math.random() < 0.3) {
-      // 隨機下毒一個其他玩家
       const target = otherAlive[Math.floor(Math.random() * otherAlive.length)];
       poisonTargetId = target ? target.id : null;
     }
 
     return { type: 'witch_action', useAntidote, poisonTargetId };
+  }
+
+  if (botPlayer.role === ROLES.SILENCER) {
+    const validTargets = otherAlive.filter((p) => p.id !== botPlayer.lastSilencedId);
+    const target = validTargets.length > 0 ? validTargets[Math.floor(Math.random() * validTargets.length)] : otherAlive[0];
+    return { type: 'silencer_silence', targetId: target ? target.id : null };
   }
 
   return null;
@@ -84,15 +100,7 @@ export function getBotDayVote(botPlayer, game) {
   const alivePlayers = game.players.filter((p) => p.isAlive && p.id !== botPlayer.id);
   if (alivePlayers.length === 0) return null;
 
-  // 狼人盡量票投好人
-  if (botPlayer.role === ROLES.WEREWOLF) {
-    const nonWolves = alivePlayers.filter((p) => p.role !== ROLES.WEREWOLF);
-    const targetList = nonWolves.length > 0 ? nonWolves : alivePlayers;
-    const chosen = targetList[Math.floor(Math.random() * targetList.length)];
-    return chosen.id;
-  }
+  if (Math.random() < 0.1) return null; // 10% 機率棄票
 
-  // 好人隨機選一位嫌疑犯（或跟隨大家）
-  const chosen = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-  return chosen.id;
+  return alivePlayers[Math.floor(Math.random() * alivePlayers.length)].id;
 }

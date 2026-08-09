@@ -56,6 +56,42 @@ const ROLE_THEMES = {
     factionBadge: 'bg-pink-900/60 text-pink-300 border-pink-500',
     factionText: '好人神職 🛡️',
   },
+  KNIGHT: {
+    name: '騎士',
+    icon: '⚔️',
+    border: 'border-amber-400',
+    glow: 'shadow-amber-900/60',
+    gradient: 'from-amber-950 via-zinc-900 to-black',
+    factionBadge: 'bg-amber-900/60 text-amber-200 border-amber-400',
+    factionText: '好人神職 🛡️',
+  },
+  SILENCER: {
+    name: '禁言長老',
+    icon: '🤐',
+    border: 'border-indigo-500',
+    glow: 'shadow-indigo-950/60',
+    gradient: 'from-indigo-950 via-zinc-900 to-black',
+    factionBadge: 'bg-indigo-900/60 text-indigo-300 border-indigo-500',
+    factionText: '好人神職 🛡️',
+  },
+  DREAMCATCHER: {
+    name: '攝夢人',
+    icon: '💤',
+    border: 'border-cyan-500',
+    glow: 'shadow-cyan-950/60',
+    gradient: 'from-cyan-950 via-zinc-900 to-black',
+    factionBadge: 'bg-cyan-900/60 text-cyan-300 border-cyan-500',
+    factionText: '好人神職 🛡️',
+  },
+  CUPID: {
+    name: '邱比特',
+    icon: '💘',
+    border: 'border-rose-500',
+    glow: 'shadow-rose-950/60',
+    gradient: 'from-rose-950 via-zinc-900 to-black',
+    factionBadge: 'bg-rose-900/60 text-rose-300 border-rose-500',
+    factionText: '好人神職 🛡️',
+  },
   VILLAGER: {
     name: '村民',
     icon: '👨‍🌾',
@@ -95,47 +131,47 @@ export const RoleCard = () => {
           }`}
         >
           {/* 牌背 (Card Back) */}
-          <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-black border-2 border-amber-500/40 p-5 flex flex-col items-center justify-between shadow-2xl">
-            <div className="w-full flex justify-between text-amber-400/60 text-xs font-mono">
+          <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-700/60 p-5 flex flex-col items-center justify-between shadow-2xl">
+            <div className="w-full flex justify-between text-zinc-400 text-xs font-mono">
               <span>WEREWOLF</span>
               <span>CARD</span>
             </div>
 
-            <div className="w-28 h-28 rounded-full border-2 border-amber-500/30 flex items-center justify-center bg-slate-900/60 shadow-inner group-hover:scale-105 transition-transform">
-              <span className="text-4xl">🐺</span>
+            <div className="w-24 h-24 rounded-full border border-zinc-700 flex items-center justify-center bg-zinc-900/80 shadow-inner group-hover:scale-105 transition-transform">
+              <span className="text-3xl">🐺</span>
             </div>
 
             <div className="text-center">
-              <span className="text-xs font-serif text-amber-300 tracking-widest block mb-1">
+              <span className="text-xs font-medium text-zinc-300 tracking-wider block mb-1">
                 點擊翻開身分牌
               </span>
-              <span className="text-[10px] text-slate-500">保持神祕，切勿窺探他人手牌</span>
+              <span className="text-[10px] text-zinc-500">保持神祕，切勿窺探他人手牌</span>
             </div>
           </div>
 
           {/* 牌面 (Card Front) */}
           <div
-            className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl bg-gradient-to-b ${theme.gradient} border-2 ${theme.border} p-5 flex flex-col justify-between shadow-2xl ${theme.glow}`}
+            className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl bg-gradient-to-b ${theme.gradient} border ${theme.border} p-5 flex flex-col justify-between shadow-2xl ${theme.glow}`}
           >
             {/* 頂部標題與陣營 */}
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400">
+              <span className="text-xs font-mono font-medium text-zinc-400">
                 #{myPlayer.seatNumber} 號位
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${theme.factionBadge}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${theme.factionBadge}`}>
                 {theme.factionText}
               </span>
             </div>
 
             {/* 角色立繪圖標與名稱 */}
             <div className="text-center my-auto">
-              <div className="text-5xl mb-3 filter drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
+              <div className="text-5xl mb-3">
                 {theme.icon}
               </div>
-              <h3 className="text-2xl font-serif font-black tracking-wider text-white mb-2">
+              <h3 className="text-xl font-bold tracking-tight text-white mb-2">
                 {theme.name}
               </h3>
-              <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed px-2">
+              <p className="text-xs text-zinc-300 line-clamp-3 leading-relaxed px-2">
                 {myRoleInfo.description}
               </p>
             </div>
@@ -143,28 +179,48 @@ export const RoleCard = () => {
             {/* 底部角色專屬技能即時狀態 */}
             <div className="pt-3 border-t border-white/10 text-[11px] space-y-1">
               {role === 'WITCH' && (
-                <div className="flex justify-around text-slate-300">
+                <div className="flex justify-around text-zinc-300">
                   <span>解藥: {myPlayer.hasUsedAntidote ? '❌ 已用' : '🟢 可用'}</span>
                   <span>毒藥: {myPlayer.hasUsedPoison ? '❌ 已用' : '🟢 可用'}</span>
                 </div>
               )}
               {role === 'HUNTER' && (
-                <div className="text-center text-slate-300">
+                <div className="text-center text-zinc-300">
                   開槍資格: {myPlayer.canShoot ? '🟢 具備開槍資格' : '❌ 已失效(被毒)'}
                 </div>
               )}
+              {role === 'KNIGHT' && (
+                <div className="text-center text-zinc-300">
+                  決鬥技能: {myPlayer.hasUsedKnightDuel ? '❌ 已發動' : '🟢 白天發言可隨時發動'}
+                </div>
+              )}
               {role === 'GUARD' && (
-                <div className="text-center text-slate-300">
+                <div className="text-center text-zinc-300">
                   上夜守護: {myPlayer.lastGuardedId ? `已守護過` : '無'}
                 </div>
               )}
+              {role === 'SILENCER' && (
+                <div className="text-center text-zinc-300">
+                  每夜可指定一人次日白天禁言
+                </div>
+              )}
+              {role === 'DREAMCATCHER' && (
+                <div className="text-center text-zinc-300">
+                  每夜可使一人入夢免疫傷害
+                </div>
+              )}
+              {role === 'CUPID' && (
+                <div className="text-center text-zinc-300">
+                  首夜可指定兩位玩家連為情侶
+                </div>
+              )}
               {role === 'IDIOT' && (
-                <div className="text-center text-slate-300">
+                <div className="text-center text-zinc-300">
                   翻牌狀態: {myPlayer.isIdiotRevealed ? '🤡 已翻牌免死' : '未觸發'}
                 </div>
               )}
               {role === 'WEREWOLF' && (
-                <div className="text-center text-red-400 font-semibold">
+                <div className="text-center text-red-400 font-medium">
                   夜晚可與狼隊友協商暗殺
                 </div>
               )}
@@ -175,7 +231,7 @@ export const RoleCard = () => {
 
       <button
         onClick={() => setIsFlipped(!isFlipped)}
-        className="mt-3 text-xs text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+        className="mt-3 text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1 cursor-pointer"
       >
         <span>🔄</span> 點擊翻轉卡片
       </button>

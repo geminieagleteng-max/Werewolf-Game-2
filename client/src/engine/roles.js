@@ -5,16 +5,21 @@
 export const FACTIONS = {
   WEREWOLF: 'WEREWOLF', // 狼人陣營
   GOOD: 'GOOD',         // 好人陣營
+  THIRD: 'THIRD',       // 第三方陣營（如情侶人狼）
 };
 
 export const ROLES = {
-  WEREWOLF: 'WEREWOLF', // 狼人
-  SEER: 'SEER',         // 預言家
-  WITCH: 'WITCH',       // 女巫
-  HUNTER: 'HUNTER',     // 獵人
-  GUARD: 'GUARD',       // 守衛
-  IDIOT: 'IDIOT',       // 白痴
-  VILLAGER: 'VILLAGER', // 村民
+  WEREWOLF: 'WEREWOLF',       // 狼人
+  SEER: 'SEER',               // 預言家
+  WITCH: 'WITCH',             // 女巫
+  HUNTER: 'HUNTER',           // 獵人
+  GUARD: 'GUARD',             // 守衛
+  IDIOT: 'IDIOT',             // 白痴
+  KNIGHT: 'KNIGHT',           // 騎士
+  SILENCER: 'SILENCER',       // 禁言長老
+  DREAMCATCHER: 'DREAMCATCHER', // 攝夢人
+  CUPID: 'CUPID',             // 邱比特
+  VILLAGER: 'VILLAGER',       // 村民
 };
 
 export const ROLE_NAMES_ZH = {
@@ -24,6 +29,10 @@ export const ROLE_NAMES_ZH = {
   [ROLES.HUNTER]: '獵人',
   [ROLES.GUARD]: '守衛',
   [ROLES.IDIOT]: '白痴',
+  [ROLES.KNIGHT]: '騎士',
+  [ROLES.SILENCER]: '禁言長老',
+  [ROLES.DREAMCATCHER]: '攝夢人',
+  [ROLES.CUPID]: '邱比特',
   [ROLES.VILLAGER]: '村民',
 };
 
@@ -87,6 +96,42 @@ export const ROLE_DEFINITIONS = {
     hasNightAction: false,
     actionPriority: 99,
   },
+  [ROLES.KNIGHT]: {
+    id: ROLES.KNIGHT,
+    name: '騎士',
+    faction: FACTIONS.GOOD,
+    isGod: true,
+    description: '白天發言階段可發動【決鬥】指定一名玩家。若目標為狼人，狼人當場死亡並直接跳入黑夜；若目標為好人，騎士以死謝罪出局。',
+    hasNightAction: false,
+    actionPriority: 99,
+  },
+  [ROLES.SILENCER]: {
+    id: ROLES.SILENCER,
+    name: '禁言長老',
+    faction: FACTIONS.GOOD,
+    isGod: true,
+    description: '每晚可指定一名玩家在次日白天【禁言】（無法在聊天室發言，但保留投票權）。不可連續兩夜禁言同一人。',
+    hasNightAction: true,
+    actionPriority: 5,
+  },
+  [ROLES.DREAMCATCHER]: {
+    id: ROLES.DREAMCATCHER,
+    name: '攝夢人',
+    faction: FACTIONS.GOOD,
+    isGod: true,
+    description: '每晚選擇一人進入夢鄉，使其免疫當夜傷害。若連續兩夜攝夢同一人，該玩家夢死；若攝夢人死亡，被攝夢者一同死亡。',
+    hasNightAction: true,
+    actionPriority: 1,
+  },
+  [ROLES.CUPID]: {
+    id: ROLES.CUPID,
+    name: '邱比特',
+    faction: FACTIONS.GOOD,
+    isGod: true,
+    description: '第一夜指定任意兩名玩家連為【情侶】。情侶生死相隨，若一人出局，另一人隨之殉情。',
+    hasNightAction: true,
+    actionPriority: 0,
+  },
   [ROLES.VILLAGER]: {
     id: ROLES.VILLAGER,
     name: '村民',
@@ -118,5 +163,15 @@ export const DEFAULT_ROLE_CONFIGS = {
     ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF,
     ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD,
     ROLES.VILLAGER, ROLES.VILLAGER
+  ],
+  10: [
+    ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF,
+    ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD, ROLES.KNIGHT,
+    ROLES.VILLAGER, ROLES.VILLAGER
+  ],
+  12: [
+    ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF,
+    ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD, ROLES.KNIGHT,
+    ROLES.VILLAGER, ROLES.VILLAGER, ROLES.VILLAGER
   ],
 };

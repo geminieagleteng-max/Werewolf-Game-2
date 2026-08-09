@@ -13,18 +13,23 @@ export const NightSkillPanel = () => {
     useWitchSkill,
     protectGuardTarget,
     shootHunterTarget,
+    linkCupidTargets,
+    dreamcatcherDream,
+    silencerSilence,
     seerCheckResult,
     setSeerCheckResult,
     witchNightInfo,
   } = useSocket();
 
   const [selectedTargetId, setSelectedTargetId] = useState(null);
+  const [cupidSelectedIds, setCupidSelectedIds] = useState([]);
   const [witchMode, setWitchMode] = useState(null); // 'POISON' | null
   const [actionDoneMsg, setActionDoneMsg] = useState('');
 
   // 階段切換時自動清空暫存選擇
   useEffect(() => {
     setSelectedTargetId(null);
+    setCupidSelectedIds([]);
     setActionDoneMsg('');
   }, [gamePhase]);
 
@@ -32,330 +37,519 @@ export const NightSkillPanel = () => {
 
   const role = myPlayer.role || myRoleInfo?.id;
   const alivePlayers = room?.players.filter((p) => p.isAlive) || [];
+  const allPlayers = room?.players || [];
 
   if (!myPlayer.isAlive && gamePhase !== 'HUNTER_SHOOT') {
     return (
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 text-center text-slate-500">
+      <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center text-zinc-500">
         <span className="text-3xl block mb-2">⚰️</span>
-        <h4 className="text-white font-bold mb-1">您已出局</h4>
-        <p className="text-xs">請靜待白天討論或遊戲結算觀戰。</p>
+        <h4 className="text-zinc-200 font-medium mb-1">您已出局</h4>
+        <p className="text-xs text-zinc-500">請靜待白天討論或遊戲結算觀戰。</p>
       </div>
     );
   }
 
-  // 1. 守衛行動面板
+  // 1. 邱比特行動面板 (首夜)
+  if (gamePhase === 'NIGHT_CUPID' && role === 'CUPID') {
+    const handleCupidToggle = (pId) => {
+      setCupidSelectedIds((prev) => {
+        if (prev.includes(pId)) return prev.filter((id) => id !== pId);
+        if (prev.length >= 2) return [prev[1], pId];
+        return [...prev, pId];
+      });
+    };
+
+    return (
+      <div className="bg-rose-950/30 border border-rose-800/60 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl">💘</span>
+          <div>
+            <h4 className="text-base font-bold text-rose-300">邱比特請睜眼</h4>
+            <p className="text-xs text-rose-300/70">請選擇任意兩位玩家連為生死情侶（已選 {cupidSelectedIds.length} / 2 位）</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+          {allPlayers.map((p) => {
+            const isSelected = cupidSelectedIds.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => handleCupidToggle(p.id)}
+                className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                  isSelected
+                    ? 'bg-rose-600 border-rose-400 text-white shadow-sm'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-rose-500/50'
+                } cursor-pointer`}
+              >
+                #{p.seatNumber} {p.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => {
+            if (cupidSelectedIds.length === 2) {
+              linkCupidTargets(cupidSelectedIds[0], cupidSelectedIds[1]);
+              setActionDoneMsg('💘 已成功為兩位玩家連為情侶！');
+            }
+          }}
+          disabled={cupidSelectedIds.length !== 2}
+          className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+        >
+          {actionDoneMsg || '💘 確認連為生死情侶'}
+        </button>
+      </div>
+    );
+  }
+
+  // 2. 攝夢人行動面板
+  if (gamePhase === 'NIGHT_DREAMCATCHER' && role === 'DREAMCATCHER') {
+    return (
+      <div className="bg-cyan-950/30 border border-cyan-800/60 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl">💤</span>
+          <div>
+            <h4 className="text-base font-bold text-cyan-300">攝夢人請睜眼</h4>
+            <p className="text-xs text-cyan-300/70">請選擇今晚入夢的玩家（連續兩夜攝夢同一人將導致其夢死）</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+          {alivePlayers.map((p) => {
+            const isSelected = selectedTargetId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedTargetId(p.id)}
+                className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                  isSelected
+                    ? 'bg-cyan-600 border-cyan-400 text-white shadow-sm'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-cyan-500/50'
+                } cursor-pointer`}
+              >
+                #{p.seatNumber} {p.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (selectedTargetId) {
+                dreamcatcherDream(selectedTargetId);
+                setActionDoneMsg('💤 已選擇攝夢目標！');
+              }
+            }}
+            disabled={!selectedTargetId}
+            className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            {actionDoneMsg || '💤 鎖定入夢'}
+          </button>
+          <button
+            onClick={() => {
+              dreamcatcherDream(null);
+              setActionDoneMsg('💤 今晚選擇空夢');
+            }}
+            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg cursor-pointer"
+          >
+            空夢
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. 守衛行動面板
   if (gamePhase === 'NIGHT_GUARD' && role === 'GUARD') {
     return (
-      <div className="bg-blue-950/40 border border-blue-800/80 rounded-2xl p-6 shadow-xl">
+      <div className="bg-blue-950/30 border border-blue-800/60 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">🛡️</span>
           <div>
-            <h4 className="text-lg font-bold text-blue-300">守衛請睜眼</h4>
-            <p className="text-xs text-blue-200/70">請選擇今晚要守護的玩家（不可連續兩晚守護同一人）</p>
+            <h4 className="text-base font-bold text-blue-300">守衛請睜眼</h4>
+            <p className="text-xs text-blue-300/70">請選擇今晚要守護的玩家（不可連續兩晚守護同一人）</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
           {alivePlayers.map((p) => {
             const isLastGuarded = myPlayer.lastGuardedId === p.id;
+            const isSelected = selectedTargetId === p.id;
+
             return (
               <button
                 key={p.id}
                 disabled={isLastGuarded}
                 onClick={() => setSelectedTargetId(p.id)}
-                className={`p-3 rounded-xl border text-sm font-semibold transition-all ${
-                  isLastGuarded
-                    ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed'
-                    : selectedTargetId === p.id
-                    ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/50 scale-105'
-                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-blue-500'
+                className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                  isSelected
+                    ? 'bg-blue-600 border-blue-400 text-white shadow-sm'
+                    : isLastGuarded
+                    ? 'bg-zinc-950/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-blue-500/50 cursor-pointer'
                 }`}
               >
                 #{p.seatNumber} {p.name}
-                {isLastGuarded && <span className="block text-[10px] text-red-400 font-normal">上一夜已守</span>}
+                {isLastGuarded && <span className="block text-[10px] text-zinc-500">(上夜已守)</span>}
               </button>
             );
           })}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={() => {
-              protectGuardTarget(selectedTargetId);
-              setActionDoneMsg(`已確認守護 ${selectedTargetId ? '目標玩家' : '空守'}`);
+              if (selectedTargetId) {
+                protectGuardTarget(selectedTargetId);
+                setActionDoneMsg('🛡️ 守護目標已送出！');
+              }
             }}
-            className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition-all cursor-pointer"
+            disabled={!selectedTargetId}
+            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
           >
-            🛡️ 確認守護
+            {actionDoneMsg || '🛡️ 守護該玩家'}
           </button>
           <button
             onClick={() => {
               protectGuardTarget(null);
-              setActionDoneMsg('今晚選擇空守');
+              setActionDoneMsg('🛡️ 今晚選擇空守');
             }}
-            className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 cursor-pointer"
+            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg cursor-pointer"
           >
-            ❌ 空守 (不守護)
+            空守
           </button>
         </div>
-
-        {actionDoneMsg && <p className="mt-3 text-xs text-blue-300 text-center">{actionDoneMsg}</p>}
       </div>
     );
   }
 
-  // 2. 狼人行動面板
+  // 4. 狼人行動面板
   if (gamePhase === 'NIGHT_WEREWOLF' && role === 'WEREWOLF') {
     return (
-      <div className="bg-red-950/40 border border-red-800/80 rounded-2xl p-6 shadow-xl">
+      <div className="bg-red-950/30 border border-red-800/60 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">🐺</span>
           <div>
-            <h4 className="text-lg font-bold text-red-400">狼人請睜眼</h4>
-            <p className="text-xs text-red-300/70">請選擇今晚要擊殺的目標，選票將即時同步給狼隊友</p>
+            <h4 className="text-base font-bold text-red-300">狼人請睜眼</h4>
+            <p className="text-xs text-red-300/70">請與狼隊友協商並點擊今晚暗殺目標</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
           {alivePlayers.map((p) => {
-            const isTeammate = p.role === 'WEREWOLF';
+            const isSelected = selectedTargetId === p.id;
             return (
               <button
                 key={p.id}
-                onClick={() => setSelectedTargetId(p.id)}
-                className={`p-3 rounded-xl border text-sm font-semibold transition-all ${
-                  selectedTargetId === p.id
-                    ? 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-900/60 scale-105'
-                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-red-500'
-                }`}
+                onClick={() => {
+                  setSelectedTargetId(p.id);
+                  selectWerewolfTarget(p.id);
+                }}
+                className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                  isSelected
+                    ? 'bg-red-600 border-red-400 text-white shadow-sm'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-red-500/50'
+                } cursor-pointer`}
               >
                 #{p.seatNumber} {p.name}
-                {isTeammate && <span className="block text-[10px] text-red-400 font-normal">🐺 狼隊友</span>}
               </button>
             );
           })}
         </div>
 
-        <button
-          onClick={() => {
-            selectWerewolfTarget(selectedTargetId);
-            setActionDoneMsg('已送出擊殺目標！');
-          }}
-          disabled={!selectedTargetId}
-          className="w-full py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 cursor-pointer"
-        >
-          🔪 確認狼刀目標
-        </button>
-
-        {actionDoneMsg && <p className="mt-3 text-xs text-red-300 text-center">{actionDoneMsg}</p>}
+        <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-400">
+          已選擇暗殺目標：
+          <span className="font-semibold text-red-400 ml-1">
+            {selectedTargetId
+              ? `#${room?.players.find((p) => p.id === selectedTargetId)?.seatNumber} ${
+                  room?.players.find((p) => p.id === selectedTargetId)?.name
+                }`
+              : '尚未鎖定'}
+          </span>
+        </div>
       </div>
     );
   }
 
-  // 3. 預言家行動面板
+  // 5. 預言家行動面板
   if (gamePhase === 'NIGHT_SEER' && role === 'SEER') {
     return (
-      <div className="bg-purple-950/40 border border-purple-800/80 rounded-2xl p-6 shadow-xl animate-fade-in">
+      <div className="bg-purple-950/30 border border-purple-800/60 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">🔮</span>
           <div>
-            <h4 className="text-lg font-bold text-purple-300">預言家請睜眼</h4>
-            <p className="text-xs text-purple-200/70">請選擇一名玩家查驗其所屬陣營（好人 🛡️ / 狼人 🐺）</p>
+            <h4 className="text-base font-bold text-purple-300">預言家請睜眼</h4>
+            <p className="text-xs text-purple-300/70">選擇一名玩家查驗其身分陣營</p>
+          </div>
+        </div>
+
+        {seerCheckResult && (
+          <div className="mb-4 p-4 bg-purple-900/40 border border-purple-500/50 rounded-xl text-center">
+            <span className="text-xs text-purple-200 block mb-1">水晶球查驗結果：</span>
+            <div className="text-base font-bold text-white">
+              #{seerCheckResult.seatNumber} {seerCheckResult.targetName}
+            </div>
+            <div className={`text-sm font-bold mt-1 ${seerCheckResult.isWerewolf ? 'text-red-400' : 'text-emerald-400'}`}>
+              身分為：{seerCheckResult.factionName}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+          {alivePlayers
+            .filter((p) => p.id !== myPlayer.id)
+            .map((p) => {
+              const isSelected = selectedTargetId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedTargetId(p.id)}
+                  className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                    isSelected
+                      ? 'bg-purple-600 border-purple-400 text-white shadow-sm'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50'
+                  } cursor-pointer`}
+                >
+                  #{p.seatNumber} {p.name}
+                </button>
+              );
+            })}
+        </div>
+
+        <button
+          onClick={() => {
+            if (selectedTargetId) {
+              checkSeerTarget(selectedTargetId);
+              setActionDoneMsg('🔮 已查驗完成！');
+            }
+          }}
+          disabled={!selectedTargetId}
+          className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+        >
+          {actionDoneMsg || '🔮 查驗該玩家身分'}
+        </button>
+      </div>
+    );
+  }
+
+  // 6. 女巫行動面板
+  if (gamePhase === 'NIGHT_WITCH' && role === 'WITCH') {
+    const victimPlayer = witchNightInfo?.targetId ? room?.players.find((p) => p.id === witchNightInfo.targetId) : null;
+
+    return (
+      <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl">🧪</span>
+          <div>
+            <h4 className="text-base font-bold text-emerald-300">女巫請睜眼</h4>
+            <p className="text-xs text-emerald-300/70">您擁有解藥與毒藥各一瓶（同夜不可雙藥並用）</p>
+          </div>
+        </div>
+
+        {victimPlayer ? (
+          <div className="mb-4 p-3.5 bg-red-950/40 border border-red-800/60 rounded-xl flex items-center justify-between text-xs">
+            <div>
+              <span className="text-red-300">今晚中刀倒牌的玩家：</span>
+              <span className="font-semibold text-white ml-1">
+                #{victimPlayer.seatNumber} {victimPlayer.name}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                useWitchSkill(true, null);
+                setActionDoneMsg('🧪 已使用解藥救起該玩家！');
+              }}
+              disabled={myPlayer.hasUsedAntidote}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              {myPlayer.hasUsedAntidote ? '解藥已用' : '使用解藥救人'}
+            </button>
+          </div>
+        ) : (
+          <div className="mb-4 p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-400 text-center">
+            今晚暫無人中刀或守衛已守護成功。
+          </div>
+        )}
+
+        <div className="pt-2 border-t border-zinc-800">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-zinc-300">使用毒藥毒殺：</span>
+            <span className="text-[11px] text-zinc-500">{myPlayer.hasUsedPoison ? '毒藥已用' : '毒藥可用'}</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            {alivePlayers
+              .filter((p) => p.id !== myPlayer.id)
+              .map((p) => {
+                const isSelected = selectedTargetId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    disabled={myPlayer.hasUsedPoison}
+                    onClick={() => {
+                      setSelectedTargetId(p.id);
+                      setWitchMode('POISON');
+                    }}
+                    className={`p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                      isSelected && witchMode === 'POISON'
+                        ? 'bg-purple-600 border-purple-400 text-white shadow-sm'
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50'
+                    } ${myPlayer.hasUsedPoison ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    #{p.seatNumber} {p.name}
+                  </button>
+                );
+              })}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (selectedTargetId && witchMode === 'POISON') {
+                  useWitchSkill(false, selectedTargetId);
+                  setActionDoneMsg('🧪 已使用毒藥毒殺目標！');
+                }
+              }}
+              disabled={myPlayer.hasUsedPoison || !selectedTargetId || witchMode !== 'POISON'}
+              className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+            >
+              {actionDoneMsg || '🧪 確認使用毒藥'}
+            </button>
+            <button
+              onClick={() => {
+                useWitchSkill(false, null);
+                setActionDoneMsg('🧪 今晚不用藥');
+              }}
+              className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg cursor-pointer"
+            >
+              不使用藥劑
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 7. 禁言長老行動面板
+  if (gamePhase === 'NIGHT_SILENCER' && role === 'SILENCER') {
+    return (
+      <div className="bg-indigo-950/30 border border-indigo-800/60 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl">🤐</span>
+          <div>
+            <h4 className="text-base font-bold text-indigo-300">禁言長老請睜眼</h4>
+            <p className="text-xs text-indigo-300/70">請指定一名玩家在次日白天禁言（不可連續兩晚禁言同一人）</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
           {alivePlayers
             .filter((p) => p.id !== myPlayer.id)
-            .map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedTargetId(p.id)}
-                className={`p-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
-                  selectedTargetId === p.id
-                    ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-900/60 scale-105 ring-2 ring-purple-400'
-                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-purple-500'
-                }`}
-              >
-                #{p.seatNumber} {p.name}
-              </button>
-            ))}
-        </div>
+            .map((p) => {
+              const isLastSilenced = myPlayer.lastSilencedId === p.id;
+              const isSelected = selectedTargetId === p.id;
 
-        <button
-          onClick={() => {
-            checkSeerTarget(selectedTargetId);
-            setActionDoneMsg('查驗中，正在獲取身分報告...');
-          }}
-          disabled={!selectedTargetId}
-          className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 cursor-pointer"
-        >
-          🔍 查驗該玩家身分
-        </button>
-
-        {actionDoneMsg && !seerCheckResult && (
-          <p className="mt-2 text-xs text-purple-300 text-center animate-pulse">{actionDoneMsg}</p>
-        )}
-
-        {/* 查驗結果彈窗 */}
-        {seerCheckResult && (
-          <div className="mt-4 p-5 rounded-2xl bg-gradient-to-r from-purple-950 to-indigo-950 border-2 border-purple-400 text-center shadow-xl animate-fade-in">
-            <h5 className="text-xs font-bold text-purple-300 uppercase tracking-wider">🔮 預言家查驗報告</h5>
-            <p className="text-xl font-black text-white mt-1">
-              #{seerCheckResult.seatNumber} 號【{seerCheckResult.targetName}】
-            </p>
-            <div className="mt-2 inline-block px-4 py-1.5 rounded-full text-sm font-black bg-white/10 text-amber-300 border border-amber-400/40">
-              身分所屬：{seerCheckResult.factionName}
-            </div>
-            <button
-              onClick={() => setSeerCheckResult(null)}
-              className="block mx-auto mt-3 text-xs text-purple-300 hover:text-white underline cursor-pointer"
-            >
-              關閉提示
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // 4. 女巫行動面板
-  if (gamePhase === 'NIGHT_WITCH' && role === 'WITCH') {
-    const hasAntidote = !myPlayer.hasUsedAntidote;
-    const hasPoison = !myPlayer.hasUsedPoison;
-    const victim = witchNightInfo?.targetName;
-
-    return (
-      <div className="bg-emerald-950/40 border border-emerald-800/80 rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🧪</span>
-          <div>
-            <h4 className="text-lg font-bold text-emerald-300">女巫請睜眼</h4>
-            <p className="text-xs text-emerald-200/70">您擁有解藥與毒藥各一瓶，同夜不可雙藥並用</p>
-          </div>
-        </div>
-
-        {/* 今晚死訊提示 */}
-        <div className="p-3 bg-slate-900/80 border border-emerald-500/30 rounded-xl mb-4 text-center">
-          <span className="text-xs text-slate-400">今晚中刀目標：</span>
-          <span className="text-sm font-bold text-amber-400 ml-1">
-            {victim ? `#{witchNightInfo.targetSeat} ${victim}` : '平安夜 (無人中刀)'}
-          </span>
-        </div>
-
-        {/* 技能選擇按鈕 */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <button
-            disabled={!hasAntidote || !witchNightInfo?.targetId}
-            onClick={() => {
-              useWitchSkill(true, null);
-              setActionDoneMsg('已使用【解藥】救治中刀者！');
-            }}
-            className="p-3 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition-all cursor-pointer"
-          >
-            💉 使用解藥救人
-          </button>
-
-          <button
-            disabled={!hasPoison}
-            onClick={() => setWitchMode(witchMode === 'POISON' ? null : 'POISON')}
-            className={`p-3 font-bold rounded-xl text-xs transition-all cursor-pointer ${
-              witchMode === 'POISON'
-                ? 'bg-rose-600 text-white ring-2 ring-rose-400'
-                : 'bg-rose-900/80 hover:bg-rose-800 text-rose-200 disabled:opacity-40'
-            }`}
-          >
-            ☠️ 使用毒藥毒人
-          </button>
-
-          <button
-            onClick={() => {
-              useWitchSkill(false, null);
-              setActionDoneMsg('今晚不使用藥劑。');
-            }}
-            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all cursor-pointer"
-          >
-            ❌ 不用藥
-          </button>
-        </div>
-
-        {/* 下毒目標選擇器 */}
-        {witchMode === 'POISON' && (
-          <div className="p-4 bg-slate-900 rounded-xl border border-rose-600 mb-4 animate-fade-in">
-            <h5 className="text-xs font-bold text-rose-400 mb-2">請選擇下毒目標：</h5>
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {alivePlayers.map((p) => (
+              return (
                 <button
                   key={p.id}
+                  disabled={isLastSilenced}
                   onClick={() => setSelectedTargetId(p.id)}
-                  className={`p-2 rounded-lg border text-xs font-semibold cursor-pointer ${
-                    selectedTargetId === p.id
-                      ? 'bg-rose-600 border-rose-400 text-white'
-                      : 'bg-slate-800 border-slate-700 text-slate-300'
+                  className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                    isSelected
+                      ? 'bg-indigo-600 border-indigo-400 text-white shadow-sm'
+                      : isLastSilenced
+                      ? 'bg-zinc-950/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-indigo-500/50 cursor-pointer'
                   }`}
                 >
                   #{p.seatNumber} {p.name}
+                  {isLastSilenced && <span className="block text-[10px] text-zinc-500">(上夜已禁)</span>}
                 </button>
-              ))}
-            </div>
-            <button
-              onClick={() => {
-                useWitchSkill(false, selectedTargetId);
-                setActionDoneMsg('已送出毒藥！');
-                setWitchMode(null);
-              }}
-              disabled={!selectedTargetId}
-              className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs disabled:opacity-50 cursor-pointer"
-            >
-              確定施毒
-            </button>
-          </div>
-        )}
+              );
+            })}
+        </div>
 
-        {actionDoneMsg && <p className="text-xs text-emerald-300 text-center">{actionDoneMsg}</p>}
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (selectedTargetId) {
+                silencerSilence(selectedTargetId);
+                setActionDoneMsg('🤐 禁言指令已送出！');
+              }
+            }}
+            disabled={!selectedTargetId}
+            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          >
+            {actionDoneMsg || '🤐 指定禁言'}
+          </button>
+          <button
+            onClick={() => {
+              silencerSilence(null);
+              setActionDoneMsg('🤐 今晚選擇空過');
+            }}
+            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg cursor-pointer"
+          >
+            空過
+          </button>
+        </div>
       </div>
     );
   }
 
-  // 5. 獵人開槍面板
+  // 8. 獵人開槍面板
   if (gamePhase === 'HUNTER_SHOOT' && role === 'HUNTER') {
     return (
-      <div className="bg-amber-950/40 border border-amber-600 rounded-2xl p-6 shadow-xl animate-pulse">
+      <div className="bg-amber-950/30 border border-amber-800/60 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">💥</span>
           <div>
-            <h4 className="text-lg font-bold text-amber-300">獵人開槍技能</h4>
-            <p className="text-xs text-amber-200/70">您已出局，請選擇帶走一名玩家（或壓槍）</p>
+            <h4 className="text-base font-bold text-amber-300">獵人開槍技能發動</h4>
+            <p className="text-xs text-amber-300/70">請選擇一名存活玩家開槍帶走，或選擇壓槍不出</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-          {alivePlayers.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedTargetId(p.id)}
-              className={`p-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
-                selectedTargetId === p.id
-                  ? 'bg-amber-500 text-slate-950 border-white shadow-lg'
-                  : 'bg-slate-900 border-slate-700 text-slate-300'
-              }`}
-            >
-              #{p.seatNumber} {p.name}
-            </button>
-          ))}
+          {alivePlayers
+            .filter((p) => p.id !== myPlayer.id)
+            .map((p) => {
+              const isSelected = selectedTargetId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedTargetId(p.id)}
+                  className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                    isSelected
+                      ? 'bg-amber-600 border-amber-400 text-white shadow-sm'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-amber-500/50'
+                  } cursor-pointer`}
+                >
+                  #{p.seatNumber} {p.name}
+                </button>
+              );
+            })}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
-            onClick={() => shootHunterTarget(selectedTargetId)}
+            onClick={() => {
+              if (selectedTargetId) {
+                shootHunterTarget(selectedTargetId);
+                setActionDoneMsg('💥 開槍目標已射出！');
+              }
+            }}
             disabled={!selectedTargetId}
-            className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg disabled:opacity-50 cursor-pointer"
+            className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold rounded-lg shadow-sm disabled:opacity-40 cursor-pointer text-xs"
           >
-            🎯 開槍帶走目標
+            {actionDoneMsg || '🎯 開槍帶走目標'}
           </button>
           <button
             onClick={() => shootHunterTarget(null)}
-            className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl cursor-pointer"
+            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg cursor-pointer"
           >
             ❌ 壓槍 (不出槍)
           </button>
@@ -370,6 +564,10 @@ export const NightSkillPanel = () => {
     switch (gamePhase) {
       case 'NIGHT_START':
         return '天黑請閉眼，夜行角色正在行動...';
+      case 'NIGHT_CUPID':
+        return '邱比特正在選擇連線情侶，請保持安靜...';
+      case 'NIGHT_DREAMCATCHER':
+        return '攝夢人正在選擇入夢目標，請保持安靜...';
       case 'NIGHT_GUARD':
         return '守衛正在選擇守護目標，請保持安靜...';
       case 'NIGHT_WEREWOLF':
@@ -378,12 +576,16 @@ export const NightSkillPanel = () => {
         return '預言家正在查驗玩家身分，請保持安靜...';
       case 'NIGHT_WITCH':
         return '女巫正在使用藥劑，請保持安靜...';
+      case 'NIGHT_SILENCER':
+        return '禁言長老正在指定禁言目標，請保持安靜...';
       case 'NIGHT_SETTLE':
         return '夜晚即將結束，正在結算昨夜情況...';
       case 'DAY_ANNOUNCE':
         return '天亮了，正在公佈昨夜情況...';
       case 'DAY_DISCUSSION':
         return '白天自由發言階段，請於右側聊天室發言討論...';
+      case 'KNIGHT_DUEL':
+        return '騎士正在發動拔劍決鬥！正在結算決鬥生死...';
       case 'DAY_VOTING':
         return '放逐投票進行中，請於右側投出您的關鍵一票...';
       case 'DAY_VOTE_RESULT':

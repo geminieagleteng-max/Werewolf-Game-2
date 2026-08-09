@@ -19,12 +19,15 @@ export class Game {
     this.phase = GAME_PHASES.WAITING;
 
     this.nightActions = {
+      cupidLovers: null, // [id1, id2]
+      dreamTargetId: null,
       guardTargetId: null,
       werewolfVotes: new Map(),
       werewolfFinalTargetId: null,
       seerCheckedPlayerId: null,
       witchUsedAntidote: false,
       witchPoisonTargetId: null,
+      silencedTargetId: null,
     };
 
     this.lastNightDeaths = [];
@@ -52,11 +55,11 @@ export class Game {
   }
 
   getAlivePlayersByRole(role) {
-    return this.players.filter(p => p.isAlive && p.role === role);
+    return this.players.filter((p) => p.isAlive && p.role === role);
   }
 
   getAlivePlayersByFaction(faction) {
-    return this.players.filter(p => {
+    return this.players.filter((p) => {
       if (!p.isAlive) return false;
       const def = ROLE_DEFINITIONS[p.role];
       return def && def.faction === faction;
@@ -64,18 +67,57 @@ export class Game {
   }
 
   resetNightActions() {
+    // 每日清空前一天的禁言狀態
+    this.players.forEach((p) => {
+      p.isSilenced = false;
+    });
+
     this.nightActions = {
+      cupidLovers: this.nightActions.cupidLovers, // 情侶關係跨夜保持
+      dreamTargetId: null,
       guardTargetId: null,
       werewolfVotes: new Map(),
       werewolfFinalTargetId: null,
       seerCheckedPlayerId: null,
       witchUsedAntidote: false,
       witchPoisonTargetId: null,
+      silencedTargetId: null,
     };
   }
 
+  // 1. 邱比特連線
+  handleCupidLink(cupidPlayerId, target1Id, target2Id) {
+    const cupid = this.players.find((p) => p.id === cupidPlayerId);
+    if (!cupid || cupid.role !== ROLES.CUPID || !cupid.isAlive) {
+      return { success: false, message: '非有效邱比特' };
+    }
+    const p1 = this.players.find((p) => p.id === target1Id);
+    const p2 = this.players.find((p) => p.id === target2Id);
+    if (!p1 || !p2 || p1.id === p2.id) {
+      return { success: false, message: '請選擇兩位不同的玩家連為情侶！' };
+    }
+
+    p1.loverId = p2.id;
+    p2.loverId = p1.id;
+    this.nightActions.cupidLovers = [p1.id, p2.id];
+
+    return { success: true, p1, p2 };
+  }
+
+  // 2. 攝夢人入夢
+  handleDreamcatcherDream(dreamerPlayerId, targetPlayerId) {
+    const dreamer = this.players.find((p) => p.id === dreamerPlayerId);
+    if (!dreamer || dreamer.role !== ROLES.DREAMCATCHER || !dreamer.isAlive) {
+      return { success: false, message: '非有效攝夢人' };
+    }
+
+    this.nightActions.dreamTargetId = targetPlayerId;
+    return { success: true, targetPlayerId };
+  }
+
+  // 3. 守衛守護
   handleGuardProtect(guardPlayerId, targetPlayerId) {
-    const guard = this.players.find(p => p.id === guardPlayerId);
+    const guard = this.players.find((p) => p.id === guardPlayerId);
     if (!guard || guard.role !== ROLES.GUARD || !guard.isAlive) {
       return { success: false, message: '非有效守衛' };
     }
@@ -89,14 +131,15 @@ export class Game {
     return { success: true, targetPlayerId };
   }
 
+  // 4. 狼人擊殺
   handleWerewolfSelect(werewolfPlayerId, targetPlayerId) {
-    const wolf = this.players.find(p => p.id === werewolfPlayerId);
+    const wolf = this.players.find((p) => p.id === werewolfPlayerId);
     if (!wolf || wolf.role !== ROLES.WEREWOLF || !wolf.isAlive) {
       return { success: false, message: '非存活狼人' };
     }
 
     if (targetPlayerId) {
-      const target = this.players.find(p => p.id === targetPlayerId && p.isAlive);
+      const target = this.players.find((p) => p.id === targetPlayerId && p.isAlive);
       if (!target) {
         return { success: false, message: '目標玩家不存在或已出局' };
       }
@@ -136,13 +179,14 @@ export class Game {
     return target;
   }
 
+  // 5. 預言家查驗
   handleSeerCheck(seerPlayerId, targetPlayerId) {
-    const seer = this.players.find(p => p.id === seerPlayerId);
+    const seer = this.players.find((p) => p.id === seerPlayerId);
     if (!seer || seer.role !== ROLES.SEER || !seer.isAlive) {
       return { success: false, message: '非存活預言家' };
     }
 
-    const target = this.players.find(p => p.id === targetPlayerId);
+    const target = this.players.find((p) => p.id === targetPlayerId);
     if (!target) {
       return { success: false, message: '查驗目標不存在' };
     }
@@ -162,8 +206,9 @@ export class Game {
     };
   }
 
+  // 6. 女巫行動
   handleWitchAction(witchPlayerId, { useAntidote, poisonTargetId }) {
-    const witch = this.players.find(p => p.id === witchPlayerId);
+    const witch = this.players.find((p) => p.id === witchPlayerId);
     if (!witch || witch.role !== ROLES.WITCH || !witch.isAlive) {
       return { success: false, message: '非存活女巫' };
     }
@@ -184,7 +229,7 @@ export class Game {
       if (witch.hasUsedPoison) {
         return { success: false, message: '毒藥已使用過，無法再次使用！' };
       }
-      const target = this.players.find(p => p.id === poisonTargetId && p.isAlive);
+      const target = this.players.find((p) => p.id === poisonTargetId && p.isAlive);
       if (!target) {
         return { success: false, message: '下毒目標不存在或已出局' };
       }
@@ -195,24 +240,100 @@ export class Game {
     return { success: true };
   }
 
+  // 7. 禁言長老禁言
+  handleSilencerSilence(silencerPlayerId, targetPlayerId) {
+    const silencer = this.players.find((p) => p.id === silencerPlayerId);
+    if (!silencer || silencer.role !== ROLES.SILENCER || !silencer.isAlive) {
+      return { success: false, message: '非有效禁言長老' };
+    }
+
+    if (targetPlayerId && silencer.lastSilencedId === targetPlayerId) {
+      return { success: false, message: '不可連續兩晚禁言同一位玩家！' };
+    }
+
+    this.nightActions.silencedTargetId = targetPlayerId;
+    silencer.lastSilencedId = targetPlayerId;
+    return { success: true, targetPlayerId };
+  }
+
+  // 8. 騎士決鬥 (白天階段)
+  handleKnightDuel(knightPlayerId, targetPlayerId) {
+    const knight = this.players.find((p) => p.id === knightPlayerId);
+    if (!knight || knight.role !== ROLES.KNIGHT || !knight.isAlive) {
+      return { success: false, message: '非存活騎士' };
+    }
+    if (knight.hasUsedKnightDuel) {
+      return { success: false, message: '騎士決鬥技能已使用過！' };
+    }
+
+    const target = this.players.find((p) => p.id === targetPlayerId && p.isAlive);
+    if (!target || target.id === knight.id) {
+      return { success: false, message: '請選擇有效的決鬥目標！' };
+    }
+
+    knight.hasUsedKnightDuel = true;
+    const isWolf = target.role === ROLES.WEREWOLF;
+
+    let deadPlayers = [];
+    if (isWolf) {
+      // 決鬥成功：狼人被斬殺
+      target.kill('KNIGHT', this.round);
+      deadPlayers.push({ player: target, reason: 'KNIGHT' });
+      this.checkLoverDeath(target, deadPlayers);
+    } else {
+      // 決鬥失敗：騎士以死謝罪出局
+      knight.kill('KNIGHT', this.round);
+      deadPlayers.push({ player: knight, reason: 'KNIGHT' });
+      this.checkLoverDeath(knight, deadPlayers);
+    }
+
+    return {
+      success: true,
+      isWolf,
+      targetPlayer: target.toPublicJSON(),
+      knightPlayer: knight.toPublicJSON(),
+      deadPlayers,
+    };
+  }
+
+  // 夜晚結算 (計算狼刀、守衛、攝夢、解藥、毒藥、禁言、情侶連死)
   settleNight() {
     const deaths = [];
     const wolfTargetId = this.nightActions.werewolfFinalTargetId;
     const guardTargetId = this.nightActions.guardTargetId;
+    const dreamTargetId = this.nightActions.dreamTargetId;
     const witchUsedAntidote = this.nightActions.witchUsedAntidote;
     const poisonTargetId = this.nightActions.witchPoisonTargetId;
+    const silencedTargetId = this.nightActions.silencedTargetId;
 
+    // 攝夢人連續攝夢判定
+    const dreamers = this.players.filter((p) => p.isAlive && p.role === ROLES.DREAMCATCHER);
+    if (dreamers.length > 0 && dreamTargetId) {
+      const dreamer = dreamers[0];
+      if (dreamer.lastDreamedId === dreamTargetId) {
+        // 連續兩晚攝夢同一人，夢死出局
+        const dreamVictim = this.players.find((p) => p.id === dreamTargetId && p.isAlive);
+        if (dreamVictim) {
+          dreamVictim.kill('DREAM', this.round);
+          deaths.push({ player: dreamVictim, reason: 'DREAM' });
+        }
+      }
+      dreamer.lastDreamedId = dreamTargetId;
+    }
+
+    // 1. 結算狼刀 (守衛、解藥、攝夢免疫)
     if (wolfTargetId) {
-      const isGuarded = (guardTargetId === wolfTargetId);
-      const isSaved = (witchUsedAntidote);
+      const isGuarded = guardTargetId === wolfTargetId;
+      const isSaved = witchUsedAntidote;
+      const isDreamProtected = dreamTargetId === wolfTargetId;
 
       let survived = false;
-      if (isGuarded || isSaved) {
+      if (isGuarded || isSaved || isDreamProtected) {
         survived = true;
       }
 
       if (!survived) {
-        const victim = this.players.find(p => p.id === wolfTargetId && p.isAlive);
+        const victim = this.players.find((p) => p.id === wolfTargetId && p.isAlive);
         if (victim) {
           victim.kill('WEREWOLF', this.round);
           deaths.push({ player: victim, reason: 'WEREWOLF' });
@@ -220,8 +341,9 @@ export class Game {
       }
     }
 
+    // 2. 結算女巫毒藥
     if (poisonTargetId) {
-      const poisonedVictim = this.players.find(p => p.id === poisonTargetId && p.isAlive);
+      const poisonedVictim = this.players.find((p) => p.id === poisonTargetId && p.isAlive);
       if (poisonedVictim) {
         poisonedVictim.kill('POISON', this.round);
         poisonedVictim.canShoot = false;
@@ -229,10 +351,37 @@ export class Game {
       }
     }
 
+    // 3. 攝夢人死亡帶走被攝夢者
+    if (dreamers.length > 0 && dreamTargetId) {
+      const dreamer = dreamers[0];
+      if (!dreamer.isAlive) {
+        const dreamVictim = this.players.find((p) => p.id === dreamTargetId && p.isAlive);
+        if (dreamVictim && !deaths.some((d) => d.player.id === dreamVictim.id)) {
+          dreamVictim.kill('DREAM', this.round);
+          deaths.push({ player: dreamVictim, reason: 'DREAM' });
+        }
+      }
+    }
+
+    // 4. 結算禁言狀態
+    if (silencedTargetId) {
+      const silencedPlayer = this.players.find((p) => p.id === silencedTargetId && p.isAlive);
+      if (silencedPlayer) {
+        silencedPlayer.isSilenced = true;
+      }
+    }
+
+    // 5. 情侶殉情判定
+    const currentDeaths = [...deaths];
+    currentDeaths.forEach((d) => {
+      this.checkLoverDeath(d.player, deaths);
+    });
+
     this.lastNightDeaths = deaths;
 
-    const deadHunter = deaths.find(d => d.player.role === ROLES.HUNTER && d.reason === 'WEREWOLF');
-    if (deadHunter && deadHunter.player.canShoot) {
+    // 檢查是否有獵人死亡需發動技能
+    const deadHunter = deaths.find((d) => d.player.role === ROLES.HUNTER && d.player.canShoot);
+    if (deadHunter) {
       this.pendingHunter = {
         hunterPlayer: deadHunter.player,
         triggerReason: 'NIGHT',
@@ -244,14 +393,25 @@ export class Game {
     return deaths;
   }
 
+  // 情侶連鎖殉情判定
+  checkLoverDeath(deadPlayer, deathList) {
+    if (deadPlayer.loverId) {
+      const partner = this.players.find((p) => p.id === deadPlayer.loverId && p.isAlive);
+      if (partner && !deathList.some((d) => d.player.id === partner.id)) {
+        partner.kill('LOVER', this.round);
+        deathList.push({ player: partner, reason: 'LOVER' });
+      }
+    }
+  }
+
   handleDayVote(voterId, targetId) {
-    const voter = this.players.find(p => p.id === voterId);
+    const voter = this.players.find((p) => p.id === voterId);
     if (!voter || !voter.isAlive || !voter.canVote) {
       return { success: false, message: '無效投票人或無投票權' };
     }
 
     if (targetId) {
-      const target = this.players.find(p => p.id === targetId && p.isAlive);
+      const target = this.players.find((p) => p.id === targetId && p.isAlive);
       if (!target) {
         return { success: false, message: '目標玩家不存在或已出局' };
       }
@@ -274,8 +434,8 @@ export class Game {
     const voteDetails = [];
 
     this.dayVotes.forEach((targetId, voterId) => {
-      const voter = this.players.find(p => p.id === voterId);
-      const target = targetId ? this.players.find(p => p.id === targetId) : null;
+      const voter = this.players.find((p) => p.id === voterId);
+      const target = targetId ? this.players.find((p) => p.id === targetId) : null;
       voteDetails.push({
         voterId,
         voterName: voter ? voter.name : '未知',
@@ -304,9 +464,10 @@ export class Game {
 
     let exiledPlayer = null;
     let isTie = false;
+    let dayDeaths = [];
 
     if (candidates.length === 1 && maxVotes > 0) {
-      const target = this.players.find(p => p.id === candidates[0] && p.isAlive);
+      const target = this.players.find((p) => p.id === candidates[0] && p.isAlive);
       if (target) {
         if (target.role === ROLES.IDIOT && !target.isIdiotRevealed) {
           target.isIdiotRevealed = true;
@@ -315,6 +476,8 @@ export class Game {
         } else {
           target.kill('VOTE', this.round);
           exiledPlayer = target;
+          dayDeaths.push({ player: target, reason: 'VOTE' });
+          this.checkLoverDeath(target, dayDeaths);
 
           if (target.role === ROLES.HUNTER && target.canShoot) {
             this.pendingHunter = {
@@ -328,9 +491,7 @@ export class Game {
       isTie = true;
     }
 
-    this.lastDayDeaths = (exiledPlayer && !exiledPlayer.isAlive)
-      ? [{ player: exiledPlayer, reason: 'VOTE' }]
-      : [];
+    this.lastDayDeaths = dayDeaths;
 
     return {
       voteDetails,
@@ -339,6 +500,7 @@ export class Game {
       exiledPlayer: exiledPlayer ? exiledPlayer.toPublicJSON() : null,
       isIdiotSaved: exiledPlayer ? exiledPlayer.isIdiotRevealed : false,
       hasHunterSkill: !!this.pendingHunter,
+      dayDeaths,
     };
   }
 
@@ -357,7 +519,7 @@ export class Game {
       return { success: true, shotPlayer: null, message: '獵人選擇不出槍' };
     }
 
-    const target = this.players.find(p => p.id === targetId && p.isAlive);
+    const target = this.players.find((p) => p.id === targetId && p.isAlive);
     if (!target) {
       return { success: false, message: '目標玩家不存在或已出局' };
     }
@@ -365,32 +527,36 @@ export class Game {
     target.kill('HUNTER', this.round);
     this.pendingHunter = null;
 
+    const deadList = [{ player: target, reason: 'HUNTER' }];
+    this.checkLoverDeath(target, deadList);
+
     return {
       success: true,
       shotPlayer: target.toPublicJSON(),
+      deadList,
     };
   }
 
   checkWinCondition() {
-    const aliveWerewolves = this.players.filter(p => p.isAlive && p.role === ROLES.WEREWOLF);
-    const aliveGood = this.players.filter(p => {
+    const aliveWerewolves = this.players.filter((p) => p.isAlive && p.role === ROLES.WEREWOLF);
+    const aliveGood = this.players.filter((p) => {
       if (!p.isAlive) return false;
       const def = ROLE_DEFINITIONS[p.role];
       return def && def.faction === FACTIONS.GOOD;
     });
 
-    const totalConfigGods = this.roleConfig.filter(r => {
+    const totalConfigGods = this.roleConfig.filter((r) => {
       const def = ROLE_DEFINITIONS[r];
       return def && def.faction === FACTIONS.GOOD && def.isGod;
     }).length;
-    const totalConfigVillagers = this.roleConfig.filter(r => r === ROLES.VILLAGER).length;
+    const totalConfigVillagers = this.roleConfig.filter((r) => r === ROLES.VILLAGER).length;
 
-    const aliveGods = this.players.filter(p => {
+    const aliveGods = this.players.filter((p) => {
       if (!p.isAlive) return false;
       const def = ROLE_DEFINITIONS[p.role];
       return def && def.faction === FACTIONS.GOOD && def.isGod;
     });
-    const aliveVillagers = this.players.filter(p => p.isAlive && p.role === ROLES.VILLAGER);
+    const aliveVillagers = this.players.filter((p) => p.isAlive && p.role === ROLES.VILLAGER);
 
     // 1. 狼人全滅 -> 好人勝利
     if (aliveWerewolves.length === 0) {

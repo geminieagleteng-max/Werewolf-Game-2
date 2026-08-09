@@ -1,21 +1,20 @@
 import { Room } from './Room';
 import { Player } from './Player';
-import { GAME_PHASES, PHASE_DURATIONS } from './gameStates';
+import { Game } from './Game';
 import { ROLES, ROLE_DEFINITIONS } from './roles';
+import { GAME_PHASES, PHASE_DURATIONS } from './gameStates';
 import { SOCKET_EVENTS } from './socketEvents';
 import { getRandomBotName, generateBotSpeech, getBotNightAction, getBotDayVote } from './aiBots';
 
 /**
- * 本機/房主端遊戲流程控制器 (Game Host Controller)
- * 負責掌控房間狀態、階段計時、事件廣播與 AI 行為模擬
+ * 房主遊戲裁判控制器 (GameHostController)
+ * 負責處理房間管理、發牌、狀態機推進、計時器管理、AI 機器人排程與廣播派發
  */
 export class GameHostController {
   /**
    * @param {Object} broadcastAdapter
-   * broadcastAdapter 需提供:
-   * - broadcast(event, data)
-   * - sendTo(playerId, event, data)
-   * - addSystemLog(text)
+   * @param {Function} broadcastAdapter.broadcast - 廣播給所有人 (event, data)
+   * @param {Function} broadcastAdapter.sendTo - 傳送給特定玩家 (playerId, event, data)
    */
   constructor(broadcastAdapter) {
     this.adapter = broadcastAdapter;
@@ -93,30 +92,24 @@ export class GameHostController {
 
   removePlayer(playerId) {
     if (!this.room) return;
-    const removed = this.room.removePlayer(playerId);
-    if (removed) {
+    const p = this.room.players.get(playerId);
+    if (p) {
+      this.room.removePlayer(playerId);
       this.broadcastState();
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `👋 玩家【${removed.name}】已離開房間。`,
+        message: `🚪 玩家【${p.name}】離開了房間。`,
       });
     }
   }
 
   toggleReady(playerId) {
     if (!this.room) return;
-    this.room.toggleReady(playerId);
-    this.broadcastState();
-  }
-
-  kickPlayer(targetPlayerId) {
-    if (!this.room) return;
-    const player = this.room.players.get(targetPlayerId);
-    if (player) {
-      this.room.removePlayer(targetPlayerId);
-      this.adapter.sendTo(targetPlayerId, SOCKET_EVENTS.ROOM.KICKED, { message: '您已被請出房間。' });
+    const p = this.room.players.get(playerId);
+    if (p && !p.isHost) {
+      p.isReady = !p.isReady;
       this.broadcastState();
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `🚫 【${player.name}】已被請出房間。`,
+        message: `${p.isReady ? '✅' : '⏳'} 玩家【${p.name}】${p.isReady ? '已就緒' : '取消就緒'}。`,
       });
     }
   }
@@ -196,16 +189,58 @@ export class GameHostController {
     });
 
     this.startPhase(GAME_PHASES.NIGHT_START, PHASE_DURATIONS[GAME_PHASES.NIGHT_START], () => {
-      this.handleGuardTurn();
+      this.handleCupidTurn();
     });
   }
 
+  // 1. 邱比特 (首夜)
+  handleCupidTurn() {
+    const aliveCupids = this.room.game.getAlivePlayersByRole(ROLES.CUPID);
+    if (this.room.game.round === 1 && aliveCupids.length > 0) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '💘 邱比特請睜眼，選擇兩名玩家連為【情侶】...' });
+
+      aliveCupids.filter((c) => c.isBot).forEach((bot) => {
+        this.scheduleBotAction(3000, () => {
+          const act = getBotNightAction(bot, this.room.game);
+          if (act) this.handleCupidLink(bot.id, act.target1Id, act.target2Id);
+        });
+      });
+
+      this.startPhase(GAME_PHASES.NIGHT_CUPID, PHASE_DURATIONS[GAME_PHASES.NIGHT_CUPID], () => {
+        this.handleDreamcatcherTurn();
+      });
+    } else {
+      this.handleDreamcatcherTurn();
+    }
+  }
+
+  // 2. 攝夢人
+  handleDreamcatcherTurn() {
+    const aliveDreamers = this.room.game.getAlivePlayersByRole(ROLES.DREAMCATCHER);
+    if (aliveDreamers.length > 0) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '💤 攝夢人請睜眼，選擇今晚要攝夢的玩家...' });
+
+      aliveDreamers.filter((d) => d.isBot).forEach((bot) => {
+        this.scheduleBotAction(3000, () => {
+          const act = getBotNightAction(bot, this.room.game);
+          if (act) this.handleDreamcatcherDream(bot.id, act.targetId);
+        });
+      });
+
+      this.startPhase(GAME_PHASES.NIGHT_DREAMCATCHER, PHASE_DURATIONS[GAME_PHASES.NIGHT_DREAMCATCHER], () => {
+        this.handleGuardTurn();
+      });
+    } else {
+      this.handleGuardTurn();
+    }
+  }
+
+  // 3. 守衛
   handleGuardTurn() {
     const aliveGuards = this.room.game.getAlivePlayersByRole(ROLES.GUARD);
     if (aliveGuards.length > 0) {
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '🛡️ 守衛請睜眼，選擇今晚要守護的玩家...' });
 
-      // 若守衛是 AI，排程行動
       aliveGuards.filter((g) => g.isBot).forEach((bot) => {
         this.scheduleBotAction(3000, () => {
           const act = getBotNightAction(bot, this.room.game);
@@ -221,6 +256,7 @@ export class GameHostController {
     }
   }
 
+  // 4. 狼人
   handleWerewolfTurn() {
     this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '🐺 狼人請睜眼，商議今晚擊殺目標...' });
 
@@ -237,6 +273,7 @@ export class GameHostController {
     });
   }
 
+  // 5. 預言家
   handleSeerTurn() {
     const aliveSeers = this.room.game.getAlivePlayersByRole(ROLES.SEER);
     if (aliveSeers.length > 0) {
@@ -257,6 +294,7 @@ export class GameHostController {
     }
   }
 
+  // 6. 女巫
   handleWitchTurn() {
     const aliveWitches = this.room.game.getAlivePlayersByRole(ROLES.WITCH);
     if (aliveWitches.length > 0) {
@@ -282,6 +320,27 @@ export class GameHostController {
       }
 
       this.startPhase(GAME_PHASES.NIGHT_WITCH, PHASE_DURATIONS[GAME_PHASES.NIGHT_WITCH], () => {
+        this.handleSilencerTurn();
+      });
+    } else {
+      this.handleSilencerTurn();
+    }
+  }
+
+  // 7. 禁言長老
+  handleSilencerTurn() {
+    const aliveSilencers = this.room.game.getAlivePlayersByRole(ROLES.SILENCER);
+    if (aliveSilencers.length > 0) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '🤐 禁言長老請睜眼，指定明日禁言目標...' });
+
+      aliveSilencers.filter((s) => s.isBot).forEach((bot) => {
+        this.scheduleBotAction(3000, () => {
+          const act = getBotNightAction(bot, this.room.game);
+          if (act) this.handleSilencerSilence(bot.id, act.targetId);
+        });
+      });
+
+      this.startPhase(GAME_PHASES.NIGHT_SILENCER, PHASE_DURATIONS[GAME_PHASES.NIGHT_SILENCER], () => {
         this.settleNightAndProceed();
       });
     } else {
@@ -321,6 +380,14 @@ export class GameHostController {
       });
     }
 
+    // 提示禁言玩家
+    const silencedPlayers = this.room.game.players.filter((p) => p.isAlive && p.isSilenced);
+    silencedPlayers.forEach((p) => {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `🤐 【#${p.seatNumber} ${p.name}】今日被禁言，無法在聊天室發言（但保有放逐投票權）！`,
+      });
+    });
+
     this.broadcastState();
 
     this.startPhase(GAME_PHASES.DAY_ANNOUNCE, PHASE_DURATIONS[GAME_PHASES.DAY_ANNOUNCE], () => {
@@ -334,10 +401,10 @@ export class GameHostController {
     });
 
     // AI 機器人發言模擬
-    const aliveBots = this.room.game.players.filter((p) => p.isAlive && p.isBot);
+    const aliveBots = this.room.game.players.filter((p) => p.isAlive && p.isBot && !p.isSilenced);
     aliveBots.forEach((bot, idx) => {
       this.scheduleBotAction(6000 + idx * 8000, () => {
-        if (this.room?.game?.phase === GAME_PHASES.DAY_DISCUSSION && bot.isAlive) {
+        if (this.room?.game?.phase === GAME_PHASES.DAY_DISCUSSION && bot.isAlive && !bot.isSilenced) {
           const speech = generateBotSpeech(bot);
           this.handleSendChat(bot.id, speech);
         }
@@ -358,8 +425,8 @@ export class GameHostController {
     // AI 機器人投票排程
     const aliveBots = this.room.game.players.filter((p) => p.isAlive && p.isBot && p.canVote);
     aliveBots.forEach((bot, idx) => {
-      this.scheduleBotAction(3000 + idx * 1200, () => {
-        if (this.room?.game?.phase === GAME_PHASES.DAY_VOTING && bot.isAlive) {
+      this.scheduleBotAction(2000 + idx * 1000, () => {
+        if (this.room?.game?.phase === GAME_PHASES.DAY_VOTING && bot.isAlive && bot.canVote) {
           const targetId = getBotDayVote(bot, this.room.game);
           this.handleDayVote(bot.id, targetId);
         }
@@ -374,20 +441,30 @@ export class GameHostController {
   settleDayVoting() {
     const result = this.room.game.settleDayVote();
 
+    this.adapter.broadcast(SOCKET_EVENTS.GAME.VOTE_TALLY, {
+      voteDetails: result.voteDetails,
+      maxVotes: result.maxVotes,
+      isTie: result.isTie,
+      exiledPlayer: result.exiledPlayer,
+      isIdiotSaved: result.isIdiotSaved,
+    });
+
     if (result.isTie) {
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: '⚖️ 投票結果平票，今日無人被放逐！',
+        message: '⚖️ 最高得票數平票，今日無人被放逐！',
+      });
+    } else if (result.isIdiotSaved) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `🤡 【${result.exiledPlayer.name}】身分為白痴，翻牌免死！但失去後續投票權。`,
       });
     } else if (result.exiledPlayer) {
-      if (result.isIdiotSaved) {
-        this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-          message: `🃏 【${result.exiledPlayer.name}】身分為【白痴】，翻牌免除放逐！`,
-        });
-      } else {
-        this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-          message: `🗳️ 投票結算：【${result.exiledPlayer.name}】獲得最高票被放逐出局！`,
-        });
-      }
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `⚰️ 投票結果：【#${result.exiledPlayer.seatNumber} ${result.exiledPlayer.name}】獲得最高票 (${result.maxVotes} 票) 被放逐出局！`,
+      });
+    } else {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: '🕊️ 全員棄票，今日無人被放逐！',
+      });
     }
 
     this.broadcastState();
@@ -422,13 +499,40 @@ export class GameHostController {
     }
 
     this.startPhase(GAME_PHASES.HUNTER_SHOOT, PHASE_DURATIONS[GAME_PHASES.HUNTER_SHOOT], () => {
-      // 倒數結束若未開槍則視為壓槍
       if (this.room.game.pendingHunter) {
         this.handleHunterShoot(hunter.id, null);
       }
     });
   }
 
+  // 邱比特連線操作
+  handleCupidLink(playerId, target1Id, target2Id) {
+    if (!this.room?.game) return;
+    const res = this.room.game.handleCupidLink(playerId, target1Id, target2Id);
+    if (res.success) {
+      this.adapter.sendTo(playerId, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `💘 您已將【${res.p1.name}】與【${res.p2.name}】連為情侶！`,
+      });
+      this.adapter.sendTo(res.p1.id, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `💘 邱比特已將您與【#${res.p2.seatNumber} ${res.p2.name}】連為生死情侶！`,
+      });
+      this.adapter.sendTo(res.p2.id, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `💘 邱比特已將您與【#${res.p1.seatNumber} ${res.p1.name}】連為生死情侶！`,
+      });
+    }
+  }
+
+  // 攝夢人入夢操作
+  handleDreamcatcherDream(playerId, targetId) {
+    if (!this.room?.game) return;
+    this.room.game.handleDreamcatcherDream(playerId, targetId);
+    const target = targetId ? this.room.players.get(targetId) : null;
+    this.adapter.sendTo(playerId, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+      message: target ? `💤 今晚選擇攝夢【#${target.seatNumber} ${target.name}】。` : '💤 今晚選擇空夢。',
+    });
+  }
+
+  // 守衛守護
   handleGuardProtect(playerId, targetId) {
     if (!this.room?.game) return;
     this.room.game.handleGuardProtect(playerId, targetId);
@@ -437,6 +541,7 @@ export class GameHostController {
     });
   }
 
+  // 狼人選人
   handleWerewolfSelect(playerId, targetId) {
     if (!this.room?.game) return;
     const res = this.room.game.handleWerewolfSelect(playerId, targetId);
@@ -451,6 +556,7 @@ export class GameHostController {
     });
   }
 
+  // 預言家查驗
   handleSeerCheck(playerId, targetId) {
     if (!this.room?.game) return;
     const res = this.room.game.handleSeerCheck(playerId, targetId);
@@ -462,6 +568,7 @@ export class GameHostController {
     }
   }
 
+  // 女巫行動
   handleWitchAction(playerId, { useAntidote, poisonTargetId }) {
     if (!this.room?.game) return;
     const res = this.room.game.handleWitchAction(playerId, { useAntidote, poisonTargetId });
@@ -475,6 +582,61 @@ export class GameHostController {
         message: useAntidote ? '🧪 使用了解藥。' : poisonTargetId ? '🧪 使用了毒藥。' : '🧪 今晚未使用藥劑。',
       });
     }
+  }
+
+  // 禁言長老禁言
+  handleSilencerSilence(playerId, targetId) {
+    if (!this.room?.game) return;
+    this.room.game.handleSilencerSilence(playerId, targetId);
+    const target = targetId ? this.room.players.get(targetId) : null;
+    this.adapter.sendTo(playerId, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+      message: target ? `🤐 今晚指定禁言【#${target.seatNumber} ${target.name}】。` : '🤐 今晚選擇空過。',
+    });
+  }
+
+  // 騎士決鬥 (白天階段)
+  handleKnightDuel(playerId, targetId) {
+    if (!this.room?.game || this.room.game.phase !== GAME_PHASES.DAY_DISCUSSION) return;
+    const res = this.room.game.handleKnightDuel(playerId, targetId);
+    if (!res.success) return;
+
+    this.clearBotTimers();
+    this.room.clearTimer();
+
+    const knight = this.room.players.get(playerId);
+    const target = this.room.players.get(targetId);
+
+    this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+      message: `⚔️ 騎士【${knight.name}】拔劍翻牌，向【#${target.seatNumber} ${target.name}】發動決鬥！`,
+    });
+
+    if (res.isWolf) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `⚔️ 決鬥成功！【#${target.seatNumber} ${target.name}】身分確為狼人，當場被騎士斬殺！直接進入黑夜！`,
+      });
+    } else {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `💔 決鬥失敗！【#${target.seatNumber} ${target.name}】為好人玩家，騎士【${knight.name}】以死謝罪出局！白天發言繼續。`,
+      });
+    }
+
+    this.broadcastState();
+
+    this.startPhase(GAME_PHASES.KNIGHT_DUEL, PHASE_DURATIONS[GAME_PHASES.KNIGHT_DUEL], () => {
+      const winCheck = this.room.game.checkWinCondition();
+      if (winCheck.isOver) {
+        return this.handleGameOver();
+      }
+
+      if (res.isWolf) {
+        // 狼人被殺直接入夜
+        this.room.game.round++;
+        this.startNightFlow();
+      } else {
+        // 騎士死亡繼續發言
+        this.startDayDiscussion();
+      }
+    });
   }
 
   handleDayVote(playerId, targetId) {
@@ -512,7 +674,7 @@ export class GameHostController {
   handleSendChat(senderId, message) {
     if (!this.room || !message) return;
     const player = this.room.players.get(senderId);
-    if (!player) return;
+    if (!player || player.isSilenced) return; // 禁言玩家無法發言
 
     this.adapter.broadcast(SOCKET_EVENTS.ACTION.RECEIVE_CHAT, {
       senderId: player.id,
