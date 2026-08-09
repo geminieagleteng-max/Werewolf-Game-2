@@ -1,0 +1,44 @@
+/**
+ * 事件名稱常數定義 (ES Module)
+ */
+
+export const SOCKET_EVENTS = {
+  ROOM: {
+    CREATE: 'room:create',
+    JOIN: 'room:join',
+    LEAVE: 'room:leave',
+    TOGGLE_READY: 'room:toggle_ready',
+    UPDATE_CONFIG: 'room:update_config',
+    KICK_PLAYER: 'room:kick_player',
+    STATE_UPDATE: 'room:state_update',
+    PLAYER_JOINED: 'room:player_joined',
+    PLAYER_LEFT: 'room:player_left',
+    KICKED: 'room:kicked',
+    ERROR: 'room:error',
+  },
+  GAME: {
+    START: 'game:start',
+    RESTART: 'game:restart',
+    STARTED: 'game:started',
+    ROLE_ASSIGNED: 'game:role_assigned',
+    PHASE_CHANGE: 'game:phase_change',
+    SYSTEM_MSG: 'game:system_message',
+    DEATH_ANNOUNCE: 'game:death_announce',
+    VOTE_TALLY: 'game:vote_tally',
+    OVER: 'game:over',
+  },
+  ACTION: {
+    WEREWOLF_SELECT: 'action:werewolf_select',
+    WEREWOLF_TEAM_SYNC: 'action:werewolf_team_sync',
+    GUARD_PROTECT: 'action:guard_protect',
+    SEER_CHECK: 'action:seer_check',
+    SEER_RESULT: 'action:seer_result',
+    WITCH_ACTION: 'action:witch_action',
+    WITCH_NIGHT_INFO: 'action:witch_night_info',
+    SEND_CHAT: 'action:send_chat',
+    RECEIVE_CHAT: 'action:receive_chat',
+    CAST_VOTE: 'action:cast_vote',
+    HUNTER_SHOOT: 'action:hunter_shoot',
+    HUNTER_STATUS: 'action:hunter_status',
+  },
+};

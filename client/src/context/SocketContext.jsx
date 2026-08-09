@@ -1,27 +1,18 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import { peerNetwork } from '../network/PeerNetwork';
+import { SOCKET_EVENTS } from '../engine/socketEvents';
 
 const SocketContext = createContext(null);
 
-// 預設伺服器 URL (優先取環境變數，次取 localStorage，最後預設 localhost:3000)
-const getDefaultServerUrl = () => {
-  if (import.meta.env.VITE_SOCKET_SERVER_URL) {
-    return import.meta.env.VITE_SOCKET_SERVER_URL;
-  }
-  const saved = localStorage.getItem('werewolf_server_url');
-  if (saved) return saved;
-
-  // 若在本地開發
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:3000';
-  }
-  return 'http://localhost:3000';
-};
-
 export const SocketProvider = ({ children }) => {
-  const [serverUrl, setServerUrl] = useState(getDefaultServerUrl);
+  // 連線模式：預設 'P2P' (免伺服器即開即玩，支援好友跨網連線與AI人機)，亦支援自架 'SERVER'
+  const [networkMode, setNetworkMode] = useState(() => localStorage.getItem('werewolf_network_mode') || 'P2P');
+  const [serverUrl, setServerUrl] = useState(() => localStorage.getItem('werewolf_server_url') || 'http://localhost:3000');
+
   const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // P2P 模式下預設連線就緒
+
   const [room, setRoom] = useState(null);
   const [myPlayer, setMyPlayer] = useState(null);
   const [myRoleInfo, setMyRoleInfo] = useState(null);
@@ -33,17 +24,87 @@ export const SocketProvider = ({ children }) => {
   const [seerCheckResult, setSeerCheckResult] = useState(null);
   const [witchNightInfo, setWitchNightInfo] = useState(null);
   const [gameOverData, setGameOverData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
-  const updateServerUrl = (newUrl) => {
-    if (newUrl && newUrl.trim()) {
-      const formatted = newUrl.trim().replace(/\/$/, '');
-      localStorage.setItem('werewolf_server_url', formatted);
-      setServerUrl(formatted);
-    }
-  };
+  const addSystemLog = useCallback((msg) => {
+    setSystemLogs((prev) => [
+      ...prev,
+      { id: Date.now() + Math.random(), text: msg, time: new Date() },
+    ]);
+  }, []);
 
+  // ----------------------------------------------------
+  // P2P 網路事件監聽掛載
+  // ----------------------------------------------------
   useEffect(() => {
-    if (!serverUrl) return;
+    if (networkMode !== 'P2P') return;
+
+    setIsConnected(true);
+
+    const unsubRoomUpdate = peerNetwork.on(SOCKET_EVENTS.ROOM.STATE_UPDATE, (updatedRoom) => {
+      setRoom(updatedRoom);
+      if (peerNetwork.myPeerId) {
+        const me = updatedRoom.players.find((p) => p.id === peerNetwork.myPeerId);
+        if (me) setMyPlayer(me);
+      }
+    });
+
+    const unsubRoleAssigned = peerNetwork.on(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, ({ player, roleInfo }) => {
+      setMyPlayer(player);
+      setMyRoleInfo(roleInfo);
+      addSystemLog(`🎴 您的身分牌已發放：【${roleInfo.name}】`);
+    });
+
+    const unsubPhaseChange = peerNetwork.on(SOCKET_EVENTS.GAME.PHASE_CHANGE, ({ phase, round, duration }) => {
+      setGamePhase(phase);
+      setGameRound(round);
+      setPhaseDuration(duration);
+    });
+
+    const unsubSystemMsg = peerNetwork.on(SOCKET_EVENTS.GAME.SYSTEM_MSG, ({ message }) => {
+      addSystemLog(message);
+    });
+
+    const unsubChat = peerNetwork.on(SOCKET_EVENTS.ACTION.RECEIVE_CHAT, (chat) => {
+      setChatMessages((prev) => [...prev, chat]);
+    });
+
+    const unsubSeer = peerNetwork.on(SOCKET_EVENTS.ACTION.SEER_RESULT, (result) => {
+      setSeerCheckResult(result);
+    });
+
+    const unsubWitch = peerNetwork.on(SOCKET_EVENTS.ACTION.WITCH_NIGHT_INFO, (info) => {
+      setWitchNightInfo(info);
+    });
+
+    const unsubGameOver = peerNetwork.on(SOCKET_EVENTS.GAME.OVER, (data) => {
+      setGameOverData(data);
+      addSystemLog(`🏆 遊戲結束！${data.reason}`);
+    });
+
+    const unsubError = peerNetwork.on(SOCKET_EVENTS.ROOM.ERROR, ({ message }) => {
+      setErrorMessage(message);
+      addSystemLog(`⚠️ 提示: ${message}`);
+    });
+
+    return () => {
+      unsubRoomUpdate();
+      unsubRoleAssigned();
+      unsubPhaseChange();
+      unsubSystemMsg();
+      unsubChat();
+      unsubSeer();
+      unsubWitch();
+      unsubGameOver();
+      unsubError();
+    };
+  }, [networkMode, addSystemLog]);
+
+  // ----------------------------------------------------
+  // Socket.io 伺服器連線 (選擇自架伺服器模式時使用)
+  // ----------------------------------------------------
+  useEffect(() => {
+    if (networkMode !== 'SERVER' || !serverUrl) return;
 
     const s = io(serverUrl, {
       transports: ['websocket', 'polling'],
@@ -57,9 +118,9 @@ export const SocketProvider = ({ children }) => {
       addSystemLog(`🟢 已成功連線至伺服器 [${serverUrl}]`);
     });
 
-    s.on('connect_error', (err) => {
+    s.on('connect_error', () => {
       setIsConnected(false);
-      addSystemLog(`⚠️ 連線至 [${serverUrl}] 失敗，請確認後端已啟動或更換伺服器網址。`);
+      addSystemLog(`⚠️ 連線至 [${serverUrl}] 失敗，請確認後端已啟動。`);
     });
 
     s.on('disconnect', () => {
@@ -106,34 +167,102 @@ export const SocketProvider = ({ children }) => {
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
     });
 
+    s.on('room:error', ({ message }) => {
+      setErrorMessage(message);
+      addSystemLog(`⚠️ ${message}`);
+    });
+
     return () => {
       s.disconnect();
     };
-  }, [serverUrl]);
+  }, [networkMode, serverUrl, addSystemLog]);
 
-  const addSystemLog = useCallback((msg) => {
-    setSystemLogs((prev) => [...prev, { id: Date.now() + Math.random(), text: msg, time: new Date() }]);
-  }, []);
-
-  // 快捷 Emitter 函式
-  const createRoom = (playerName, roomName, maxPlayers) => {
-    socket?.emit('room:create', { playerName, roomName, maxPlayers });
+  // 切換網路模式
+  const switchNetworkMode = (mode, customUrl) => {
+    setNetworkMode(mode);
+    localStorage.setItem('werewolf_network_mode', mode);
+    if (customUrl) {
+      const formatted = customUrl.trim().replace(/\/$/, '');
+      setServerUrl(formatted);
+      localStorage.setItem('werewolf_server_url', formatted);
+    }
   };
 
-  const joinRoom = (playerName, roomId) => {
-    socket?.emit('room:join', { playerName, roomId });
+  // ----------------------------------------------------
+  // 操作派發方法 (統整 P2P 與 Socket.io)
+  // ----------------------------------------------------
+  const createRoom = async (playerName, roomName, maxPlayers) => {
+    setErrorMessage(null);
+    if (networkMode === 'P2P') {
+      try {
+        const { room: r, player: p } = await peerNetwork.hostRoom({
+          roomName,
+          maxPlayers,
+          playerName,
+        });
+        setRoom(r.toPublicJSON());
+        setMyPlayer(p.toPublicJSON());
+      } catch (err) {
+        setErrorMessage('建立房間失敗，請重新嘗試！');
+      }
+    } else {
+      socket?.emit('room:create', { playerName, roomName, maxPlayers });
+    }
+  };
+
+  const joinRoom = async (playerName, roomId) => {
+    setErrorMessage(null);
+    if (!roomId || !roomId.trim()) {
+      setErrorMessage('請輸入 6 位房間代碼！');
+      return;
+    }
+
+    if (networkMode === 'P2P') {
+      try {
+        await peerNetwork.joinRoom({ roomId: roomId.trim(), playerName });
+      } catch (err) {
+        setErrorMessage('加入房間失敗，請確認房號是否正確且房主在線上！');
+      }
+    } else {
+      socket?.emit('room:join', { playerName, roomId: roomId.trim() });
+    }
+  };
+
+  const addBot = () => {
+    if (networkMode === 'P2P') {
+      peerNetwork.addBot();
+    }
+  };
+
+  const fillBots = () => {
+    if (networkMode === 'P2P') {
+      peerNetwork.fillBots();
+    }
   };
 
   const toggleReady = () => {
-    socket?.emit('room:toggle_ready');
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ROOM.TOGGLE_READY);
+    } else {
+      socket?.emit('room:toggle_ready');
+    }
   };
 
   const startGame = () => {
-    socket?.emit('game:start');
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.GAME.START);
+    } else {
+      socket?.emit('game:start');
+    }
   };
 
   const leaveRoom = () => {
-    socket?.emit('room:leave');
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ROOM.LEAVE);
+      peerNetwork.cleanup();
+    } else {
+      socket?.emit('room:leave');
+    }
     setRoom(null);
     setMyPlayer(null);
     setMyRoleInfo(null);
@@ -142,41 +271,76 @@ export const SocketProvider = ({ children }) => {
   };
 
   const kickPlayer = (targetPlayerId) => {
-    socket?.emit('room:kick_player', { targetPlayerId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ROOM.KICK_PLAYER, { targetPlayerId });
+    } else {
+      socket?.emit('room:kick_player', { targetPlayerId });
+    }
   };
 
   const sendChat = (message) => {
-    if (message?.trim()) {
+    if (!message?.trim()) return;
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.SEND_CHAT, { message: message.trim() });
+    } else {
       socket?.emit('action:send_chat', { message: message.trim() });
     }
   };
 
   const selectWerewolfTarget = (targetId) => {
-    socket?.emit('action:werewolf_select', { targetId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.WEREWOLF_SELECT, { targetId });
+    } else {
+      socket?.emit('action:werewolf_select', { targetId });
+    }
   };
 
   const checkSeerTarget = (targetId) => {
-    socket?.emit('action:seer_check', { targetId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.SEER_CHECK, { targetId });
+    } else {
+      socket?.emit('action:seer_check', { targetId });
+    }
   };
 
   const useWitchSkill = (useAntidote, poisonTargetId) => {
-    socket?.emit('action:witch_action', { useAntidote, poisonTargetId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.WITCH_ACTION, { useAntidote, poisonTargetId });
+    } else {
+      socket?.emit('action:witch_action', { useAntidote, poisonTargetId });
+    }
   };
 
   const protectGuardTarget = (targetId) => {
-    socket?.emit('action:guard_protect', { targetId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.GUARD_PROTECT, { targetId });
+    } else {
+      socket?.emit('action:guard_protect', { targetId });
+    }
   };
 
   const shootHunterTarget = (targetId) => {
-    socket?.emit('action:hunter_shoot', { targetId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.HUNTER_SHOOT, { targetId });
+    } else {
+      socket?.emit('action:hunter_shoot', { targetId });
+    }
   };
 
   const castDayVote = (targetId) => {
-    socket?.emit('action:cast_vote', { targetId });
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.CAST_VOTE, { targetId });
+    } else {
+      socket?.emit('action:cast_vote', { targetId });
+    }
   };
 
   const restartGame = () => {
-    socket?.emit('game:restart');
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.GAME.RESTART);
+    } else {
+      socket?.emit('game:restart');
+    }
     setGameOverData(null);
     setMyRoleInfo(null);
   };
@@ -185,8 +349,9 @@ export const SocketProvider = ({ children }) => {
     <SocketContext.Provider
       value={{
         socket,
+        networkMode,
         serverUrl,
-        updateServerUrl,
+        switchNetworkMode,
         isConnected,
         room,
         myPlayer,
@@ -200,8 +365,12 @@ export const SocketProvider = ({ children }) => {
         setSeerCheckResult,
         witchNightInfo,
         gameOverData,
+        errorMessage,
+        setErrorMessage,
         createRoom,
         joinRoom,
+        addBot,
+        fillBots,
         toggleReady,
         startGame,
         leaveRoom,
