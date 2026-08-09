@@ -17,6 +17,21 @@ export const ROLES = {
   VILLAGER: 'VILLAGER', // 村民
 };
 
+export const ROLE_NAMES_ZH = {
+  [ROLES.WEREWOLF]: '狼人',
+  [ROLES.SEER]: '預言家',
+  [ROLES.WITCH]: '女巫',
+  [ROLES.HUNTER]: '獵人',
+  [ROLES.GUARD]: '守衛',
+  [ROLES.IDIOT]: '白痴',
+  [ROLES.VILLAGER]: '村民',
+};
+
+export const formatRoleConfigZh = (roleConfig) => {
+  if (!roleConfig || !Array.isArray(roleConfig)) return '標準配置';
+  return roleConfig.map((r) => ROLE_NAMES_ZH[r] || r).join('、');
+};
+
 export const ROLE_DEFINITIONS = {
   [ROLES.WEREWOLF]: {
     id: ROLES.WEREWOLF,

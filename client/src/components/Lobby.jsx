@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSocket } from '../context/SocketContext';
+import { formatRoleConfigZh } from '../engine/roles';
 
 export const Lobby = () => {
   const {
@@ -214,7 +215,7 @@ export const Lobby = () => {
             </div>
             <p className="text-xs text-zinc-400 mt-1">
               人數：<span className="text-zinc-200 font-medium">{playerCount}</span> / {max} ·
-              配置：{room.roleConfig?.join('、') || '標準配置'}
+              配置：{formatRoleConfigZh(room.roleConfig)}
             </p>
           </div>
 

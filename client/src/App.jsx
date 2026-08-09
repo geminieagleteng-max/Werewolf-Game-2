@@ -1,5 +1,6 @@
 import React from 'react';
 import { SocketProvider, useSocket } from './context/SocketContext';
+import { ROLE_NAMES_ZH } from './engine/roles';
 import TopBar from './components/TopBar';
 import Lobby from './components/Lobby';
 import RoleCard from './components/RoleCard';
@@ -81,7 +82,7 @@ const GameContent = () => {
                   <div className="font-mono text-xs text-amber-400 font-bold">
                     #{p.seatNumber} {p.name}
                   </div>
-                  <div className="text-sm font-bold text-white mt-1">{p.role}</div>
+                  <div className="text-sm font-bold text-white mt-1">{ROLE_NAMES_ZH[p.role] || p.role}</div>
                 </div>
               ))}
             </div>
