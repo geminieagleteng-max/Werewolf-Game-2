@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
+import { PHASE_NAMES_ZH } from '../engine/gameStates';
 
 export const NightSkillPanel = () => {
   const {
@@ -364,10 +365,41 @@ export const NightSkillPanel = () => {
   }
 
   // 預設非技能發動狀態提示
+  const phaseZh = PHASE_NAMES_ZH[gamePhase] || gamePhase;
+  const getPhaseDescription = () => {
+    switch (gamePhase) {
+      case 'NIGHT_START':
+        return '天黑請閉眼，夜行角色正在行動...';
+      case 'NIGHT_GUARD':
+        return '守衛正在選擇守護目標，請保持安靜...';
+      case 'NIGHT_WEREWOLF':
+        return '狼人正在商議擊殺目標，請保持安靜...';
+      case 'NIGHT_SEER':
+        return '預言家正在查驗玩家身分，請保持安靜...';
+      case 'NIGHT_WITCH':
+        return '女巫正在使用藥劑，請保持安靜...';
+      case 'NIGHT_SETTLE':
+        return '夜晚即將結束，正在結算昨夜情況...';
+      case 'DAY_ANNOUNCE':
+        return '天亮了，正在公佈昨夜情況...';
+      case 'DAY_DISCUSSION':
+        return '白天自由發言階段，請於右側聊天室發言討論...';
+      case 'DAY_VOTING':
+        return '放逐投票進行中，請於右側投出您的關鍵一票...';
+      case 'DAY_VOTE_RESULT':
+        return '投票結束，正在結算放逐結果...';
+      case 'HUNTER_SHOOT':
+        return '獵人正在開槍發動技能...';
+      default:
+        return '請等待輪次指引...';
+    }
+  };
+
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 text-center text-slate-400">
+    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center text-zinc-400">
       <span className="text-2xl block mb-2">⏳</span>
-      <p className="text-sm">當前階段為【{gamePhase}】，請等待輪次指引...</p>
+      <h4 className="text-base font-bold text-zinc-200 mb-1">【{phaseZh}】</h4>
+      <p className="text-xs text-zinc-400">{getPhaseDescription()}</p>
     </div>
   );
 };

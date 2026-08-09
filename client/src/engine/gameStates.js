@@ -1,5 +1,5 @@
 /**
- * 遊戲階段狀態機列舉 (ES Module)
+ * 遊戲階段狀態機列舉與中文名稱定義 (ES Module)
  */
 
 export const GAME_PHASES = {
@@ -26,6 +26,24 @@ export const GAME_PHASES = {
 
   // 結算
   GAME_OVER: 'GAME_OVER',             // 遊戲結束
+};
+
+// 階段中文名稱對照
+export const PHASE_NAMES_ZH = {
+  [GAME_PHASES.WAITING]: '大廳等待中',
+  [GAME_PHASES.ASSIGNING_ROLES]: '發牌階段 🎴',
+  [GAME_PHASES.NIGHT_START]: '夜幕降臨 🌙',
+  [GAME_PHASES.NIGHT_GUARD]: '守衛行動 🛡️',
+  [GAME_PHASES.NIGHT_WEREWOLF]: '狼人行動 🐺',
+  [GAME_PHASES.NIGHT_SEER]: '預言家行動 🔮',
+  [GAME_PHASES.NIGHT_WITCH]: '女巫行動 🧪',
+  [GAME_PHASES.NIGHT_SETTLE]: '夜晚結算中 ⏳',
+  [GAME_PHASES.DAY_ANNOUNCE]: '天亮公佈 ☀️',
+  [GAME_PHASES.DAY_DISCUSSION]: '白天自由發言 💬',
+  [GAME_PHASES.DAY_VOTING]: '放逐投票 🗳️',
+  [GAME_PHASES.DAY_VOTE_RESULT]: '票數結算 📊',
+  [GAME_PHASES.HUNTER_SHOOT]: '獵人開槍 💥',
+  [GAME_PHASES.GAME_OVER]: '遊戲結束 🏆',
 };
 
 // 階段預設倒數秒數
