@@ -12,7 +12,7 @@ export class Room {
    * @param {number} maxPlayers - 最大容納玩家數
    * @param {string} hostId - 初始房主 ID
    */
-  constructor(id, name = '狼人殺房間', maxPlayers = 6, hostId = null) {
+  constructor(id, name = '狼人殺', maxPlayers = 6, hostId = null) {
     this.id = id;
     this.name = name;
     this.maxPlayers = maxPlayers;

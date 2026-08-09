@@ -18,7 +18,7 @@ export const Lobby = () => {
   } = useSocket();
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('werewolf_player_name') || '玩家一');
-  const [roomName, setRoomName] = useState('狼人殺對局');
+  const [roomName, setRoomName] = useState('狼人殺');
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [joinRoomId, setJoinRoomId] = useState('');
   const [copied, setCopied] = useState(false);

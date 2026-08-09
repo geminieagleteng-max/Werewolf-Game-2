@@ -25,7 +25,7 @@ export class GameHostController {
 
   createRoom({ roomId, roomName, maxPlayers, playerName, hostId }) {
     const rId = roomId || Math.random().toString(36).substring(2, 8).toUpperCase();
-    const rName = (roomName && roomName.trim()) || '歡樂狼人殺';
+    const rName = (roomName && roomName.trim()) || '狼人殺';
     const mPlayers = parseInt(maxPlayers, 10) || 6;
 
     this.room = new Room(rId, rName, mPlayers, hostId);
