@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { formatRoleConfigZh } from '../engine/roles';
 
+const AVAILABLE_CUSTOM_ROLES = [
+  { id: 'WEREWOLF', name: '狼人', icon: '🐺', max: 5 },
+  { id: 'SEER', name: '預言家', icon: '🔮', max: 2 },
+  { id: 'WITCH', name: '女巫', icon: '🧪', max: 2 },
+  { id: 'HUNTER', name: '獵人', icon: '💥', max: 2 },
+  { id: 'GUARD', name: '守衛', icon: '🛡️', max: 2 },
+  { id: 'IDIOT', name: '白痴', icon: '🤡', max: 2 },
+  { id: 'VILLAGER', name: '村民', icon: '👨‍🌾', max: 8 },
+];
+
 export const Lobby = () => {
   const {
     room,
@@ -15,12 +25,21 @@ export const Lobby = () => {
     fillBots,
     errorMessage,
     setErrorMessage,
-    networkMode,
   } = useSocket();
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('werewolf_player_name') || '玩家一');
   const [roomName, setRoomName] = useState('狼人殺');
-  const [maxPlayers, setMaxPlayers] = useState(6);
+  const [boardPreset, setBoardPreset] = useState('6'); // '6' | '7' | '8' | '9' | 'CUSTOM'
+  const [customRoles, setCustomRoles] = useState({
+    WEREWOLF: 2,
+    SEER: 1,
+    WITCH: 1,
+    HUNTER: 1,
+    GUARD: 1,
+    IDIOT: 0,
+    VILLAGER: 2,
+  });
+
   const [joinRoomId, setJoinRoomId] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,10 +49,22 @@ export const Lobby = () => {
   const playerCount = room?.playerCount || 0;
   const max = room?.maxPlayers || 6;
 
+  const totalCustomPlayers = Object.values(customRoles).reduce((a, b) => a + b, 0);
+
   const handleNameChange = (e) => {
     const val = e.target.value;
     setPlayerName(val);
     localStorage.setItem('werewolf_player_name', val);
+  };
+
+  const updateRoleCount = (roleId, delta) => {
+    setCustomRoles((prev) => {
+      const current = prev[roleId] || 0;
+      const targetRole = AVAILABLE_CUSTOM_ROLES.find((r) => r.id === roleId);
+      const maxCount = targetRole ? targetRole.max : 6;
+      const updated = Math.max(0, Math.min(maxCount, current + delta));
+      return { ...prev, [roleId]: updated };
+    });
   };
 
   const handleCreateRoom = async () => {
@@ -41,9 +72,39 @@ export const Lobby = () => {
       setErrorMessage('請輸入暱稱');
       return;
     }
-    setLoading(true);
-    await createRoom(playerName.trim(), roomName.trim(), maxPlayers);
-    setLoading(false);
+
+    if (boardPreset === 'CUSTOM') {
+      if (customRoles.WEREWOLF < 1) {
+        setErrorMessage('自定義板子至少需要 1 名狼人！');
+        return;
+      }
+      const goodCount = totalCustomPlayers - customRoles.WEREWOLF;
+      if (goodCount < 1) {
+        setErrorMessage('自定義板子至少需要 1 名好人陣營玩家！');
+        return;
+      }
+      if (totalCustomPlayers < 3 || totalCustomPlayers > 12) {
+        setErrorMessage('自定義總人數需介於 3 至 12 人之間！');
+        return;
+      }
+
+      const customRoleArray = [];
+      AVAILABLE_CUSTOM_ROLES.forEach(({ id }) => {
+        const count = customRoles[id] || 0;
+        for (let i = 0; i < count; i++) {
+          customRoleArray.push(id);
+        }
+      });
+
+      setLoading(true);
+      await createRoom(playerName.trim(), roomName.trim(), totalCustomPlayers, customRoleArray);
+      setLoading(false);
+    } else {
+      const pCount = Number(boardPreset);
+      setLoading(true);
+      await createRoom(playerName.trim(), roomName.trim(), pCount);
+      setLoading(false);
+    }
   };
 
   const handleJoinRoom = async () => {
@@ -118,9 +179,9 @@ export const Lobby = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* 創建新房間 */}
-            <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-5 flex flex-col justify-between">
+            <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-5 flex flex-col justify-between h-full">
               <div>
                 <h3 className="text-sm font-semibold text-zinc-200 mb-3.5 flex items-center gap-2">
                   <span>＋</span> 創建新房間
@@ -135,19 +196,72 @@ export const Lobby = () => {
                       className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs focus:outline-none focus:border-zinc-500"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-[11px] text-zinc-400 mb-1">人數配置</label>
+                    <label className="block text-[11px] text-zinc-400 mb-1">人數與板子配置</label>
                     <select
-                      value={maxPlayers}
-                      onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                      value={boardPreset}
+                      onChange={(e) => setBoardPreset(e.target.value)}
                       className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-xs focus:outline-none focus:border-zinc-500 cursor-pointer"
                     >
-                      <option value={6}>6 人 (2狼 1預 1女 1獵 1民)</option>
-                      <option value={7}>7 人 (2狼 1預 1女 1獵 2民)</option>
-                      <option value={8}>8 人 (3狼 1預 1女 1獵 2民)</option>
-                      <option value={9}>9 人 (3狼 1預 1女 1獵 1守 2民)</option>
+                      <option value="6">6 人局 (2狼 1預 1女 1獵 1民)</option>
+                      <option value="7">7 人局 (2狼 1預 1女 1獵 2民)</option>
+                      <option value="8">8 人局 (3狼 1預 1女 1獵 2民)</option>
+                      <option value="9">9 人局 (3狼 1預 1女 1獵 1守 2民)</option>
+                      <option value="CUSTOM">🛠️ 自定義局（自選人數與職業組成）</option>
                     </select>
                   </div>
+
+                  {/* 自定義板子設定器 */}
+                  {boardPreset === 'CUSTOM' && (
+                    <div className="p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-xl space-y-2.5 mt-2">
+                      <div className="flex items-center justify-between text-xs pb-2 border-b border-zinc-800">
+                        <span className="font-semibold text-zinc-200">職業人數微調</span>
+                        <span className="font-mono text-zinc-300 font-bold">
+                          總人數：<span className="text-amber-400">{totalCustomPlayers}</span> 人
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                        {AVAILABLE_CUSTOM_ROLES.map((r) => {
+                          const count = customRoles[r.id] || 0;
+                          return (
+                            <div
+                              key={r.id}
+                              className="flex items-center justify-between p-1.5 bg-zinc-950/60 border border-zinc-800/80 rounded-lg text-xs"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>{r.icon}</span>
+                                <span className="text-zinc-200 font-medium">{r.name}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => updateRoleCount(r.id, -1)}
+                                  disabled={count <= 0}
+                                  className="w-5 h-5 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 rounded text-xs font-bold cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="font-mono font-bold w-4 text-center text-zinc-100">
+                                  {count}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateRoleCount(r.id, 1)}
+                                  disabled={count >= r.max}
+                                  className="w-5 h-5 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 rounded text-xs font-bold cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -156,12 +270,12 @@ export const Lobby = () => {
                 disabled={loading}
                 className="mt-6 w-full py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               >
-                {loading ? '建立中...' : '建立房間'}
+                {loading ? '建立中...' : boardPreset === 'CUSTOM' ? `建立 ${totalCustomPlayers} 人自定義房間` : '建立房間'}
               </button>
             </div>
 
             {/* 加入既有房間 */}
-            <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-5 flex flex-col justify-between">
+            <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-5 flex flex-col justify-between h-full">
               <div>
                 <h3 className="text-sm font-semibold text-zinc-200 mb-3.5 flex items-center gap-2">
                   <span>→</span> 加入房間

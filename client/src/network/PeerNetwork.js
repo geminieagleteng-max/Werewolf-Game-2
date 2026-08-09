@@ -49,7 +49,7 @@ export class PeerNetwork {
   }
 
   // 房主建立 P2P 房間
-  async hostRoom({ roomId, roomName, maxPlayers, playerName }) {
+  async hostRoom({ roomId, roomName, maxPlayers, roleConfig, playerName }) {
     this.cleanup();
     this.isHost = true;
     this.roomId = roomId || Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -99,6 +99,7 @@ export class PeerNetwork {
             roomId: this.roomId,
             roomName,
             maxPlayers,
+            roleConfig,
             playerName: this.myPlayerName,
             hostId: this.myPeerId,
           });

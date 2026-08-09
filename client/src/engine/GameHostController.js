@@ -23,12 +23,17 @@ export class GameHostController {
     this.botTimers = [];
   }
 
-  createRoom({ roomId, roomName, maxPlayers, playerName, hostId }) {
+  createRoom({ roomId, roomName, maxPlayers, roleConfig, playerName, hostId }) {
     const rId = roomId || Math.random().toString(36).substring(2, 8).toUpperCase();
     const rName = (roomName && roomName.trim()) || '狼人殺';
-    const mPlayers = parseInt(maxPlayers, 10) || 6;
+    const mPlayers = (roleConfig && roleConfig.length) ? roleConfig.length : (parseInt(maxPlayers, 10) || 6);
 
     this.room = new Room(rId, rName, mPlayers, hostId);
+    if (roleConfig && Array.isArray(roleConfig) && roleConfig.length >= 3) {
+      this.room.roleConfig = [...roleConfig];
+      this.room.maxPlayers = roleConfig.length;
+    }
+
     const hostPlayer = new Player(hostId, hostId, playerName || '房主', 1, true, false);
     this.room.addPlayer(hostPlayer);
 

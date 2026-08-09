@@ -209,13 +209,14 @@ export const SocketProvider = ({ children }) => {
   // ----------------------------------------------------
   // 操作派發方法 (統整 P2P 與 Socket.io)
   // ----------------------------------------------------
-  const createRoom = async (playerName, roomName, maxPlayers) => {
+  const createRoom = async (playerName, roomName, maxPlayers, roleConfig) => {
     setErrorMessage(null);
     if (networkMode === 'P2P') {
       try {
         const { room: r, player: p } = await peerNetwork.hostRoom({
           roomName,
           maxPlayers,
+          roleConfig,
           playerName,
         });
         setRoom(r.toPublicJSON());
@@ -224,7 +225,7 @@ export const SocketProvider = ({ children }) => {
         setErrorMessage('建立房間失敗，請重新嘗試！');
       }
     } else {
-      socket?.emit('room:create', { playerName, roomName, maxPlayers });
+      socket?.emit('room:create', { playerName, roomName, maxPlayers, roleConfig });
     }
   };
 
