@@ -111,10 +111,15 @@ export const Lobby = () => {
           )}
 
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-serif font-extrabold bg-gradient-to-r from-amber-400 via-rose-500 to-amber-200 bg-clip-text text-transparent">
-              🌙 線上狼人殺大廳
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-950/40 border border-amber-500/30 rounded-full text-xs text-amber-300 font-mono tracking-wider mb-3">
+              <span>✦</span>
+              <span>MOONLIT BATTLE LOBBY</span>
+              <span>✦</span>
+            </div>
+            <h2 className="text-4xl font-display font-black tracking-wider bg-gradient-to-r from-amber-100 via-amber-300 to-rose-500 bg-clip-text text-transparent drop-shadow-[0_4px_15px_rgba(245,158,11,0.3)]">
+              線上狼人殺大廳
             </h2>
-            <p className="text-sm text-slate-400 mt-2">創建或加入房間，展開一場智謀與欺瞞的對決</p>
+            <p className="text-sm text-slate-400 mt-2">創建或加入房間，展開一場智謀與欺瞞的暗夜對決</p>
           </div>
 
           {/* 玩家暱稱輸入 */}
