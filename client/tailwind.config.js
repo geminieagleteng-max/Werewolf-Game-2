@@ -7,9 +7,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Cinzel', 'Georgia', 'serif'],
-        display: ['"Cinzel Decorative"', 'Cinzel', 'serif'],
-        sans: ['"Noto Sans TC"', 'Outfit', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', '"Noto Sans TC"', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
         werewolf: {
