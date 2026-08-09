@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐺 線上狼人殺 (Werewolf Online)</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="game-header">
+      <div class="logo">
+        <span class="icon">🐺</span>
+        <h1>WEREWOLF ONLINE</h1>
+      </div>
+      <div id="connectionStatus" class="status-badge connected">已連線至伺服器</div>
+    </header>
+
+    <!-- 主視圖 1: 大廳 (登入 / 創房 / 查房) -->
+    <main id="lobbyView" class="view-panel active">
+      <div class="lobby-card">
+        <h2>🎪 遊戲大廳</h2>
+        <div class="form-group">
+          <label>玩家暱稱</label>
+          <input type="text" id="playerNameInput" placeholder="請輸入暱稱 (例: 福爾摩斯)" value="玩家1">
+        </div>
+
+        <div class="action-columns">
+          <div class="action-box">
+            <h3>創建房間</h3>
+            <div class="form-group">
+              <label>房間名稱</label>
+              <input type="text" id="roomNameInput" placeholder="輸入房間名稱" value="新手歡樂房">
+            </div>
+            <div class="form-group">
+              <label>人數上限 (6~9人)</label>
+              <select id="maxPlayersSelect">
+                <option value="6" selected>6 人局 (2狼 1預 1女 1獵 1民)</option>
+                <option value="7">7 人局 (2狼 1預 1女 1獵 2民)</option>
+                <option value="8">8 人局 (3狼 1預 1女 1獵 2民)</option>
+                <option value="9">9 人局 (3狼 1預 1女 1獵 1守 2民)</option>
+              </select>
+            </div>
+            <button id="btnCreateRoom" class="btn btn-primary">➕ 創建新房間</button>
+          </div>
+
+          <div class="action-box">
+            <h3>加入房間</h3>
+            <div class="form-group">
+              <label>房間代碼 (6位代碼)</label>
+              <input type="text" id="roomIdInput" placeholder="例如: AB3K9X" style="text-transform: uppercase;">
+            </div>
+            <button id="btnJoinRoom" class="btn btn-secondary">🚪 加入指定房間</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 主視圖 2: 遊戲房中 (準備 / 夜晚 / 白天 / 結算) -->
+    <main id="gameRoomView" class="view-panel">
+      <!-- 頂部資訊欄 -->
+      <div class="room-topbar">
+        <div class="room-meta">
+          <span class="badge room-badge">房間: <b id="displayRoomId">------</b></span>
+          <span class="badge" id="displayRoomName">歡樂房</span>
+          <span class="badge phase-badge" id="displayPhase">準備中</span>
+          <span class="badge timer-badge" id="displayTimer">⏱️ --s</span>
+        </div>
+        <div class="room-actions">
+          <button id="btnToggleReady" class="btn btn-sm btn-outline">準備</button>
+          <button id="btnStartGame" class="btn btn-sm btn-primary" style="display: none;">🚀 開始遊戲</button>
+          <button id="btnLeaveRoom" class="btn btn-sm btn-danger">離開房間</button>
+        </div>
+      </div>
+
+      <div class="game-layout">
+        <!-- 左側：玩家座位圓桌區 -->
+        <section class="players-section">
+          <h3>👥 座位席 (<span id="playerCount">0/6</span>)</h3>
+          <div id="playerSeatsGrid" class="seats-grid">
+            <!-- 動態生成玩家座位卡 -->
+          </div>
+
+          <!-- 個人角色身分卡 -->
+          <div id="myRoleCard" class="role-card-container">
+            <div class="role-header">🎴 您的個人身分</div>
+            <div id="roleDetails" class="role-body">
+              <p class="text-muted">遊戲尚未開始...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 中間：操作面板 (技能/投票) -->
+        <section class="action-section">
+          <h3>⚡ 當前行動區</h3>
+          <div id="actionArea" class="action-panel-box">
+            <div class="waiting-prompt">請等待遊戲進入對應階段...</div>
+          </div>
+
+          <!-- 投票 / 查驗 / 技能目標快捷選擇器 -->
+          <div id="targetSelectorContainer" class="target-selector" style="display: none;">
+            <h4>🎯 選擇目標玩家：</h4>
+            <div id="targetButtonsGrid" class="target-grid"></div>
+          </div>
+        </section>
+
+        <!-- 右側：日誌與發言區 -->
+        <section class="chat-section">
+          <div class="chat-header">
+            <h3>📜 遊戲公告與發言</h3>
+          </div>
+          <div id="chatMessages" class="chat-messages">
+            <!-- 系統日誌與玩家發言 -->
+          </div>
+          <form id="chatForm" class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="輸入發言訊息..." autocomplete="off">
+            <button type="submit" class="btn btn-primary">送出</button>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
