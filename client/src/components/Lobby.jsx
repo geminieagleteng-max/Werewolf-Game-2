@@ -10,29 +10,70 @@ export const Lobby = () => {
     toggleReady,
     startGame,
     kickPlayer,
+    isConnected,
   } = useSocket();
 
   const [playerName, setPlayerName] = useState('福爾摩斯');
   const [roomName, setRoomName] = useState('歡樂狼人殺');
   const [maxPlayers, setMaxPlayers] = useState(6);
   const [joinRoomId, setJoinRoomId] = useState('');
+  const [connectAlert, setConnectAlert] = useState(false);
 
   const isHost = myPlayer?.isHost;
   const isReady = myPlayer?.isReady;
   const playerCount = room?.playerCount || 0;
   const max = room?.maxPlayers || 6;
 
-  // 判斷是否可開始遊戲 (人數全滿且非房主全員準備)
-  const canStart =
-    isHost &&
-    playerCount === max &&
-    room?.players.every((p) => (p.isHost ? true : p.isReady));
+  const handleCreateRoom = () => {
+    if (!isConnected) {
+      setConnectAlert(true);
+      return;
+    }
+    createRoom(playerName, roomName, maxPlayers);
+  };
+
+  const handleJoinRoom = () => {
+    if (!isConnected) {
+      setConnectAlert(true);
+      return;
+    }
+    joinRoom(playerName, joinRoomId);
+  };
 
   // 未進入房間時的登入/創房介面
   if (!room) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-65px)] p-6 bg-slate-950">
         <div className="w-full max-w-4xl bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl">
+          {/* 未連線伺服器提示條 */}
+          {!isConnected && (
+            <div className="mb-6 p-4 bg-amber-950/40 border border-amber-500/50 rounded-xl flex items-start gap-3 text-amber-200 text-xs">
+              <span className="text-xl">⚠️</span>
+              <div className="flex-1">
+                <p className="font-bold text-amber-300">尚未連線至後端伺服器 (右上角為 🔴 紅燈)</p>
+                <p className="mt-1 text-slate-300">
+                  狼人殺需要後端 WebSocket 伺服器進行多人連線與遊戲邏輯運算。
+                  請先在本地終端機啟動後端 (<code className="bg-slate-900 px-1 py-0.5 rounded text-amber-400 font-mono">npm start</code>) 或點擊右上角 ⚙️ 齒輪填入遠端伺服器網址。
+                </p>
+              </div>
+            </div>
+          )}
+
+          {connectAlert && !isConnected && (
+            <div className="mb-6 p-4 bg-red-950/60 border border-red-500 rounded-xl flex items-center justify-between text-red-200 text-xs animate-shake">
+              <div className="flex items-center gap-2">
+                <span>🚫</span>
+                <span>無法建立或加入房間：尚未連線到後端伺服器，請先啟動後端或設定伺服器網址！</span>
+              </div>
+              <button
+                onClick={() => setConnectAlert(false)}
+                className="text-slate-400 hover:text-white ml-2 text-base font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div className="text-center mb-8">
             <h2 className="text-3xl font-serif font-extrabold bg-gradient-to-r from-amber-400 via-rose-500 to-amber-200 bg-clip-text text-transparent">
               🌙 線上狼人殺大廳
@@ -88,7 +129,7 @@ export const Lobby = () => {
               </div>
 
               <button
-                onClick={() => createRoom(playerName, roomName, maxPlayers)}
+                onClick={handleCreateRoom}
                 className="mt-6 w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-950/40 transition-all transform hover:-translate-y-0.5 cursor-pointer"
               >
                 ➕ 建立房間
@@ -117,7 +158,7 @@ export const Lobby = () => {
               </div>
 
               <button
-                onClick={() => joinRoom(playerName, joinRoomId)}
+                onClick={handleJoinRoom}
                 className="mt-6 w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 hover:border-indigo-500 shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
               >
                 🚀 進入房間
