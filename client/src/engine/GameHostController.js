@@ -72,7 +72,7 @@ export class GameHostController {
     if (res.success) {
       this.broadcastState();
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `🤖 AI【${botPlayer.name}】已加入房間（#${botPlayer.seatNumber} 號位）。`,
+        message: `🤖 【${botPlayer.name}】已加入房間（#${botPlayer.seatNumber} 號位）。`,
       });
       return true;
     }

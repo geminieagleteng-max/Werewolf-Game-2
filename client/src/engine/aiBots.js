@@ -1,17 +1,3 @@
-import { ROLES, FACTIONS, ROLE_DEFINITIONS } from './roles';
-
-const BOT_NAMES = [
-  '🤖 智慧阿爾法',
-  '🤖 邏輯大師',
-  '🤖 福爾摩汪',
-  '🤖 柯南分身',
-  '🤖 摸魚小兵',
-  '🤖 沉默是金',
-  '🤖 帶刀侍衛',
-  '🤖 毒舌女巫',
-  '🤖 預言神算',
-];
-
 const BOT_SPEECHES = {
   GENERAL: [
     '我是閉眼好人，昨天的情況大家怎麼看？',
@@ -33,11 +19,11 @@ const BOT_SPEECHES = {
 };
 
 export function getRandomBotName(existingNames = []) {
-  const available = BOT_NAMES.filter((n) => !existingNames.includes(n));
-  if (available.length > 0) {
-    return available[Math.floor(Math.random() * available.length)];
+  let idx = 1;
+  while (existingNames.includes(`AI${idx}`)) {
+    idx++;
   }
-  return `🤖 AI玩家_${Math.floor(100 + Math.random() * 900)}`;
+  return `AI${idx}`;
 }
 
 export function generateBotSpeech(botPlayer) {
