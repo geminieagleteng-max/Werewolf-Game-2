@@ -45,7 +45,16 @@ export const SocketProvider = ({ children }) => {
       setRoom(updatedRoom);
       if (peerNetwork.myPeerId) {
         const me = updatedRoom.players.find((p) => p.id === peerNetwork.myPeerId);
-        if (me) setMyPlayer(me);
+        if (me) {
+          setMyPlayer((prev) => ({
+            ...me,
+            role: prev?.role || me.role,
+            hasUsedAntidote: prev?.hasUsedAntidote ?? me.hasUsedAntidote,
+            hasUsedPoison: prev?.hasUsedPoison ?? me.hasUsedPoison,
+            lastGuardedId: prev?.lastGuardedId ?? me.lastGuardedId,
+            canShoot: prev?.canShoot ?? me.canShoot,
+          }));
+        }
       }
     });
 
@@ -131,7 +140,16 @@ export const SocketProvider = ({ children }) => {
     s.on('room:state_update', (updatedRoom) => {
       setRoom(updatedRoom);
       const me = updatedRoom.players.find((p) => p.id === s.id);
-      if (me) setMyPlayer(me);
+      if (me) {
+        setMyPlayer((prev) => ({
+          ...me,
+          role: prev?.role || me.role,
+          hasUsedAntidote: prev?.hasUsedAntidote ?? me.hasUsedAntidote,
+          hasUsedPoison: prev?.hasUsedPoison ?? me.hasUsedPoison,
+          lastGuardedId: prev?.lastGuardedId ?? me.lastGuardedId,
+          canShoot: prev?.canShoot ?? me.canShoot,
+        }));
+      }
     });
 
     s.on('game:role_assigned', ({ player, roleInfo }) => {

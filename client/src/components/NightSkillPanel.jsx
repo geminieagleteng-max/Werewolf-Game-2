@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 
 export const NightSkillPanel = () => {
   const {
     room,
     myPlayer,
+    myRoleInfo,
     gamePhase,
     selectWerewolfTarget,
     checkSeerTarget,
@@ -20,9 +21,15 @@ export const NightSkillPanel = () => {
   const [witchMode, setWitchMode] = useState(null); // 'POISON' | null
   const [actionDoneMsg, setActionDoneMsg] = useState('');
 
+  // 階段切換時自動清空暫存選擇
+  useEffect(() => {
+    setSelectedTargetId(null);
+    setActionDoneMsg('');
+  }, [gamePhase]);
+
   if (!myPlayer) return null;
 
-  const role = myPlayer.role;
+  const role = myPlayer.role || myRoleInfo?.id;
   const alivePlayers = room?.players.filter((p) => p.isAlive) || [];
 
   if (!myPlayer.isAlive && gamePhase !== 'HUNTER_SHOOT') {
@@ -147,12 +154,12 @@ export const NightSkillPanel = () => {
   // 3. 預言家行動面板
   if (gamePhase === 'NIGHT_SEER' && role === 'SEER') {
     return (
-      <div className="bg-purple-950/40 border border-purple-800/80 rounded-2xl p-6 shadow-xl">
+      <div className="bg-purple-950/40 border border-purple-800/80 rounded-2xl p-6 shadow-xl animate-fade-in">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">🔮</span>
           <div>
             <h4 className="text-lg font-bold text-purple-300">預言家請睜眼</h4>
-            <p className="text-xs text-purple-200/70">請選擇一名玩家查驗其所屬陣營</p>
+            <p className="text-xs text-purple-200/70">請選擇一名玩家查驗其所屬陣營（好人 🛡️ / 狼人 🐺）</p>
           </div>
         </div>
 
@@ -163,9 +170,9 @@ export const NightSkillPanel = () => {
               <button
                 key={p.id}
                 onClick={() => setSelectedTargetId(p.id)}
-                className={`p-3 rounded-xl border text-sm font-semibold transition-all ${
+                className={`p-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                   selectedTargetId === p.id
-                    ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-900/60 scale-105'
+                    ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-900/60 scale-105 ring-2 ring-purple-400'
                     : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-purple-500'
                 }`}
               >
@@ -177,6 +184,7 @@ export const NightSkillPanel = () => {
         <button
           onClick={() => {
             checkSeerTarget(selectedTargetId);
+            setActionDoneMsg('查驗中，正在獲取身分報告...');
           }}
           disabled={!selectedTargetId}
           className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 cursor-pointer"
@@ -184,19 +192,23 @@ export const NightSkillPanel = () => {
           🔍 查驗該玩家身分
         </button>
 
+        {actionDoneMsg && !seerCheckResult && (
+          <p className="mt-2 text-xs text-purple-300 text-center animate-pulse">{actionDoneMsg}</p>
+        )}
+
         {/* 查驗結果彈窗 */}
         {seerCheckResult && (
-          <div className="mt-4 p-4 rounded-xl bg-purple-900/80 border border-purple-400 text-center animate-fade-in">
-            <h5 className="text-sm font-bold text-purple-200">查驗報告</h5>
-            <p className="text-lg font-black text-white mt-1">
-              #{seerCheckResult.seatNumber} {seerCheckResult.targetName}
+          <div className="mt-4 p-5 rounded-2xl bg-gradient-to-r from-purple-950 to-indigo-950 border-2 border-purple-400 text-center shadow-xl animate-fade-in">
+            <h5 className="text-xs font-bold text-purple-300 uppercase tracking-wider">🔮 預言家查驗報告</h5>
+            <p className="text-xl font-black text-white mt-1">
+              #{seerCheckResult.seatNumber} 號【{seerCheckResult.targetName}】
             </p>
-            <div className="mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-amber-300">
-              {seerCheckResult.factionName}
+            <div className="mt-2 inline-block px-4 py-1.5 rounded-full text-sm font-black bg-white/10 text-amber-300 border border-amber-400/40">
+              身分所屬：{seerCheckResult.factionName}
             </div>
             <button
               onClick={() => setSeerCheckResult(null)}
-              className="block mx-auto mt-3 text-xs text-purple-300 hover:underline"
+              className="block mx-auto mt-3 text-xs text-purple-300 hover:text-white underline cursor-pointer"
             >
               關閉提示
             </button>
@@ -275,7 +287,7 @@ export const NightSkillPanel = () => {
                 <button
                   key={p.id}
                   onClick={() => setSelectedTargetId(p.id)}
-                  className={`p-2 rounded-lg border text-xs font-semibold ${
+                  className={`p-2 rounded-lg border text-xs font-semibold cursor-pointer ${
                     selectedTargetId === p.id
                       ? 'bg-rose-600 border-rose-400 text-white'
                       : 'bg-slate-800 border-slate-700 text-slate-300'
@@ -292,7 +304,7 @@ export const NightSkillPanel = () => {
                 setWitchMode(null);
               }}
               disabled={!selectedTargetId}
-              className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs disabled:opacity-50"
+              className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs disabled:opacity-50 cursor-pointer"
             >
               確定施毒
             </button>
@@ -321,7 +333,7 @@ export const NightSkillPanel = () => {
             <button
               key={p.id}
               onClick={() => setSelectedTargetId(p.id)}
-              className={`p-3 rounded-xl border text-sm font-semibold transition-all ${
+              className={`p-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                 selectedTargetId === p.id
                   ? 'bg-amber-500 text-slate-950 border-white shadow-lg'
                   : 'bg-slate-900 border-slate-700 text-slate-300'
@@ -336,13 +348,13 @@ export const NightSkillPanel = () => {
           <button
             onClick={() => shootHunterTarget(selectedTargetId)}
             disabled={!selectedTargetId}
-            className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg disabled:opacity-50"
+            className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg disabled:opacity-50 cursor-pointer"
           >
             🎯 開槍帶走目標
           </button>
           <button
             onClick={() => shootHunterTarget(null)}
-            className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl"
+            className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl cursor-pointer"
           >
             ❌ 壓槍 (不出槍)
           </button>
