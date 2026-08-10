@@ -515,6 +515,12 @@ export const SocketProvider = ({ children }) => {
     const res = await voiceManager.init(deviceId);
     setIsMicInitialized(res.success);
     setIsMicMuted(voiceManager.isMuted);
+    if (res.success) {
+      voiceManager.unlockAudioPlayback();
+      if (networkMode === 'P2P') {
+        peerNetwork.connectAudioToAllPeers();
+      }
+    }
     return res;
   };
 
@@ -532,6 +538,10 @@ export const SocketProvider = ({ children }) => {
     }
     const newMuted = voiceManager.toggleMute();
     setIsMicMuted(newMuted);
+    voiceManager.unlockAudioPlayback();
+    if (!newMuted && networkMode === 'P2P') {
+      peerNetwork.connectAudioToAllPeers();
+    }
   };
 
   const restartGame = () => {

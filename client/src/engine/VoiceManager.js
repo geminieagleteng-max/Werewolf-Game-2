@@ -200,6 +200,7 @@ export class VoiceManager {
    * 綁定並播放遠端玩家語音
    */
   handleRemoteStream(peerId, remoteStream) {
+    if (!remoteStream) return;
     this.remoteStreams.set(peerId, remoteStream);
 
     let audioEl = this.remoteAudioElements.get(peerId);
@@ -208,17 +209,48 @@ export class VoiceManager {
       audioEl.autoplay = true;
       audioEl.playsInline = true;
       audioEl.style.display = 'none';
+      audioEl.setAttribute('data-peer-id', peerId);
       document.body.appendChild(audioEl);
       this.remoteAudioElements.set(peerId, audioEl);
     }
 
     audioEl.srcObject = remoteStream;
     audioEl.volume = this.settings.outputVolume;
-    audioEl.play().catch((e) => console.log('Remote audio autoplay catch:', e));
+
+    // 解鎖並確保播放遠端音訊串流
+    this.unlockAudioPlayback();
 
     if (this.onRemoteStream) {
       this.onRemoteStream(peerId, remoteStream);
     }
+  }
+
+  /**
+   * 解鎖瀏覽器音訊自動播放限制 (Autoplay Policy)
+   */
+  unlockAudioPlayback() {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume().catch(() => {});
+    }
+
+    this.remoteAudioElements.forEach((audioEl) => {
+      if (audioEl.srcObject) {
+        audioEl.play().catch((err) => {
+          console.warn('Browser blocked audio autoplay, waiting for user interaction:', err);
+          const resumeOnInteraction = () => {
+            if (audioEl.srcObject) {
+              audioEl.play().catch(() => {});
+            }
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+              this.audioContext.resume().catch(() => {});
+            }
+          };
+          window.addEventListener('click', resumeOnInteraction, { once: true });
+          window.addEventListener('touchstart', resumeOnInteraction, { once: true });
+          window.addEventListener('keydown', resumeOnInteraction, { once: true });
+        });
+      }
+    });
   }
 
   removeRemoteStream(peerId) {
