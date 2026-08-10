@@ -380,13 +380,14 @@ export class GameHostController {
     }
 
     if (this.room.game.pendingHunter) {
-      this.handleHunterTurn();
+      this.handleHunterTurn('NIGHT', deaths);
     } else {
       this.startDayFlow(deaths);
     }
   }
 
   startDayFlow(nightDeaths) {
+    this.hasPassedSkipDiscussion = false;
     this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
       message: `☀️ 天亮了！公佈昨夜情況...`,
     });
@@ -421,6 +422,7 @@ export class GameHostController {
 
   startDayDiscussion() {
     this.discussionSkipVotes = new Set();
+    this.hasPassedSkipDiscussion = false;
     const alivePlayers = Array.from(this.room.players.values()).filter((p) => p.isAlive);
     const aliveCount = alivePlayers.length;
     const neededVotes = Math.max(1, Math.ceil(aliveCount * (2 / 3)));
@@ -492,6 +494,8 @@ export class GameHostController {
     });
 
     if (hasPassed) {
+      if (this.hasPassedSkipDiscussion) return;
+      this.hasPassedSkipDiscussion = true;
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
         message: `⏩ 投票通過！已達 2/3 存活玩家同意跳過發言（${skipVoters.length}/${neededVotes} 票），立即進入白天放逐投票！`,
       });
@@ -565,7 +569,7 @@ export class GameHostController {
     }
 
     if (result.hasHunterSkill && this.room.game.pendingHunter) {
-      this.handleHunterTurn();
+      this.handleHunterTurn('DAY');
     } else {
       this.startPhase(GAME_PHASES.DAY_VOTE_RESULT, PHASE_DURATIONS[GAME_PHASES.DAY_VOTE_RESULT], () => {
         this.room.game.round++;
@@ -574,7 +578,9 @@ export class GameHostController {
     }
   }
 
-  handleHunterTurn() {
+  handleHunterTurn(triggerSource = 'DAY', savedDeaths = []) {
+    this.pendingHunterSource = triggerSource;
+    this.savedNightDeaths = savedDeaths;
     const hunter = this.room.game.pendingHunter.hunterPlayer;
     this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
       message: `💥 獵人【${hunter.name}】已出局，發動開槍技能！`,
@@ -756,8 +762,16 @@ export class GameHostController {
         return this.handleGameOver();
       }
 
-      this.room.game.round++;
-      this.startNightFlow();
+      if (this.pendingHunterSource === 'NIGHT') {
+        // 夜晚獵人中刀開槍後，正常進入白天公佈與發言流程
+        this.startDayFlow(this.savedNightDeaths || []);
+      } else {
+        // 白天放逐投票出局開槍後，正常進入下一夜
+        this.startPhase(GAME_PHASES.DAY_VOTE_RESULT, PHASE_DURATIONS[GAME_PHASES.DAY_VOTE_RESULT], () => {
+          this.room.game.round++;
+          this.startNightFlow();
+        });
+      }
     }
   }
 

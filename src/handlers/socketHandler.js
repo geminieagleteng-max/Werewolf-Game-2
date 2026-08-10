@@ -384,7 +384,7 @@ function setupSocketHandlers(io) {
       }
 
       // 恢復原本該進行的階段（若夜晚獵人中刀開槍則轉入白天；若白天被票開槍則轉入下一夜）
-      proceedAfterHunterShoot(io, room);
+      proceedAfterHunterShoot(io, room, room.game.pendingHunterSource);
     });
   });
 }
@@ -622,6 +622,7 @@ function settleDayVoteAndProceed(io, room) {
  * 觸發獵人開槍技能階段
  */
 function triggerHunterShoot(io, room, triggerSource) {
+  room.game.pendingHunterSource = triggerSource;
   const hunter = room.game.pendingHunter.hunterPlayer;
   io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
     message: `💥 獵人【${hunter.seatNumber}號 ${hunter.name}】出局發動技能！請選擇開槍目標...`,
