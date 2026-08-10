@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSocket } from '../context/SocketContext';
+import { ROLE_DEFINITIONS } from '../engine/roles';
 
 const ROLE_THEMES = {
   WEREWOLF: {
@@ -103,7 +104,7 @@ const ROLE_THEMES = {
   },
 };
 
-export const RoleCard = () => {
+export const RoleCard = ({ onOpenSkillGuide }) => {
   const { myPlayer, myRoleInfo } = useSocket();
   const [isFlipped, setIsFlipped] = useState(true);
 
@@ -117,13 +118,14 @@ export const RoleCard = () => {
 
   const role = myPlayer.role || myRoleInfo.id;
   const theme = ROLE_THEMES[role] || ROLE_THEMES.VILLAGER;
+  const roleDef = ROLE_DEFINITIONS[role] || myRoleInfo;
 
   return (
     <div className="flex flex-col items-center">
       {/* 3D 翻牌容器 */}
       <div
         onClick={() => setIsFlipped(!isFlipped)}
-        className="w-64 h-96 cursor-pointer select-none perspective-1000 group"
+        className="w-full max-w-[270px] h-[390px] cursor-pointer select-none perspective-1000 group"
       >
         <div
           className={`relative w-full h-full duration-500 transform-style-3d transition-transform ${
@@ -138,7 +140,7 @@ export const RoleCard = () => {
             </div>
 
             <div className="w-24 h-24 rounded-full border border-zinc-700 flex items-center justify-center bg-zinc-900/80 shadow-inner group-hover:scale-105 transition-transform">
-              <span className="text-3xl">🐺</span>
+              <span className="text-4xl">🐺</span>
             </div>
 
             <div className="text-center">
@@ -151,7 +153,7 @@ export const RoleCard = () => {
 
           {/* 牌面 (Card Front) */}
           <div
-            className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl bg-gradient-to-b ${theme.gradient} border ${theme.border} p-5 flex flex-col justify-between shadow-2xl ${theme.glow}`}
+            className={`absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl bg-gradient-to-b ${theme.gradient} border ${theme.border} p-4 flex flex-col justify-between shadow-2xl ${theme.glow}`}
           >
             {/* 頂部標題與陣營 */}
             <div className="flex items-center justify-between">
@@ -165,19 +167,22 @@ export const RoleCard = () => {
 
             {/* 角色立繪圖標與名稱 */}
             <div className="text-center my-auto">
-              <div className="text-5xl mb-3">
+              <div className="text-5xl mb-2">
                 {theme.icon}
               </div>
-              <h3 className="text-xl font-bold tracking-tight text-white mb-2">
+              <h3 className="text-xl font-bold tracking-tight text-white mb-0.5">
                 {theme.name}
               </h3>
-              <p className="text-xs text-zinc-300 line-clamp-3 leading-relaxed px-2">
-                {myRoleInfo.description}
+              <p className="text-[11px] text-amber-300/80 font-serif italic mb-1.5">
+                {roleDef.title ? `「${roleDef.title}」` : ''}
+              </p>
+              <p className="text-xs text-zinc-300 line-clamp-3 leading-relaxed px-1">
+                {roleDef.description || myRoleInfo.description}
               </p>
             </div>
 
             {/* 底部角色專屬技能即時狀態 */}
-            <div className="pt-3 border-t border-white/10 text-[11px] space-y-1">
+            <div className="pt-2.5 border-t border-white/10 text-[11px] space-y-1">
               {role === 'WITCH' && (
                 <div className="flex justify-around text-zinc-300">
                   <span>解藥: {myPlayer.hasUsedAntidote ? '❌ 已用' : '🟢 可用'}</span>
@@ -191,7 +196,7 @@ export const RoleCard = () => {
               )}
               {role === 'KNIGHT' && (
                 <div className="text-center text-zinc-300">
-                  決鬥技能: {myPlayer.hasUsedKnightDuel ? '❌ 已發動' : '🟢 白天發言可隨時發動'}
+                  決鬥技能: {myPlayer.hasUsedKnightDuel ? '❌ 已發動' : '🟢 白天發言可發動'}
                 </div>
               )}
               {role === 'GUARD' && (
@@ -224,17 +229,38 @@ export const RoleCard = () => {
                   夜晚可與狼隊友協商暗殺
                 </div>
               )}
+              {role === 'SEER' && (
+                <div className="text-center text-purple-300 font-medium">
+                  每晚可查驗一人真實陣營
+                </div>
+              )}
+              {role === 'VILLAGER' && (
+                <div className="text-center text-zinc-400 font-medium">
+                  白天參與發言與投票放逐
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <button
-        onClick={() => setIsFlipped(!isFlipped)}
-        className="mt-3 text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1 cursor-pointer"
-      >
-        <span>🔄</span> 點擊翻轉卡片
-      </button>
+      {/* 卡片下方操作工具列 */}
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          onClick={() => setIsFlipped(!isFlipped)}
+          className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔄</span> 翻轉手牌
+        </button>
+
+        <button
+          onClick={() => onOpenSkillGuide?.(role)}
+          className="px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 border border-amber-500/50 rounded-lg text-xs text-amber-300 font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+          title="開啟角色技能指南與全角色圖鑑"
+        >
+          <span>📖</span> 技能詳解
+        </button>
+      </div>
     </div>
   );
 };

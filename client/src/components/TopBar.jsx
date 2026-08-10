@@ -3,12 +3,15 @@ import { useSocket } from '../context/SocketContext';
 
 const PHASE_LABELS = {
   WAITING: { text: '大廳等待中', color: 'bg-zinc-900 text-zinc-400 border-zinc-800' },
-  ASSIGNING_ROLES: { text: '發牌階段', color: 'bg-zinc-900 text-amber-300 border-amber-500/40' },
+  ASSIGNING_ROLES: { text: '發牌階段 🎴', color: 'bg-zinc-900 text-amber-300 border-amber-500/40' },
   NIGHT_START: { text: '夜幕降臨 🌙', color: 'bg-zinc-900 text-indigo-300 border-indigo-500/40' },
   NIGHT_GUARD: { text: '守衛行動 🛡️', color: 'bg-zinc-900 text-blue-300 border-blue-500/40' },
   NIGHT_WEREWOLF: { text: '狼人行動 🐺', color: 'bg-zinc-900 text-red-400 border-red-500/40' },
   NIGHT_SEER: { text: '預言家行動 🔮', color: 'bg-zinc-900 text-purple-300 border-purple-500/40' },
   NIGHT_WITCH: { text: '女巫行動 🧪', color: 'bg-zinc-900 text-emerald-300 border-emerald-500/40' },
+  NIGHT_SILENCER: { text: '禁言長老行動 🤐', color: 'bg-zinc-900 text-indigo-300 border-indigo-500/40' },
+  NIGHT_DREAMCATCHER: { text: '攝夢人行動 💤', color: 'bg-zinc-900 text-cyan-300 border-cyan-500/40' },
+  NIGHT_CUPID: { text: '邱比特行動 💘', color: 'bg-zinc-900 text-rose-300 border-rose-500/40' },
   NIGHT_SETTLE: { text: '夜晚結算中', color: 'bg-zinc-900 text-zinc-400 border-zinc-800' },
   DAY_ANNOUNCE: { text: '天亮了 ☀️', color: 'bg-zinc-900 text-amber-300 border-amber-500/40' },
   DAY_DISCUSSION: { text: '白天自由發言', color: 'bg-zinc-900 text-sky-300 border-sky-500/40' },
@@ -38,7 +41,7 @@ const MinimalWolfIcon = () => (
   </div>
 );
 
-export const TopBar = () => {
+export const TopBar = ({ onOpenSkillGuide }) => {
   const {
     room,
     gamePhase,
@@ -49,6 +52,7 @@ export const TopBar = () => {
     networkMode,
     serverUrl,
     switchNetworkMode,
+    myPlayer,
   } = useSocket();
 
   const [timeLeft, setTimeLeft] = useState(0);
@@ -102,7 +106,7 @@ export const TopBar = () => {
                   <span>{room.id}</span>
                   <span className="text-[10px] text-zinc-500 ml-1.5">{copied ? '已複製' : '複製'}</span>
                 </button>
-                <span className="text-zinc-500 text-xs">• {room.name}</span>
+                <span className="text-zinc-500 text-xs hidden md:inline">• {room.name}</span>
               </div>
             )}
           </div>
@@ -123,8 +127,19 @@ export const TopBar = () => {
           </div>
         )}
 
-        {/* 右側：連線狀態與操作 */}
+        {/* 右側：技能指南快捷鍵、連線狀態與操作 */}
         <div className="flex items-center gap-2.5">
+          {room && (
+            <button
+              onClick={() => onOpenSkillGuide?.(myPlayer?.role)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 border border-amber-500/50 rounded-lg text-xs text-amber-300 font-semibold transition-all cursor-pointer shadow-sm"
+              title="查看角色技能說明與圖鑑"
+            >
+              <span>📖</span>
+              <span className="hidden sm:inline">角色技能</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setTempMode(networkMode);

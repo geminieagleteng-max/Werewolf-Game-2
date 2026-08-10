@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 import { PHASE_NAMES_ZH } from '../engine/gameStates';
 
-export const NightSkillPanel = () => {
+export const NightSkillPanel = ({ onOpenSkillGuide }) => {
   const {
     room,
     myPlayer,
@@ -17,7 +17,6 @@ export const NightSkillPanel = () => {
     dreamcatcherDream,
     silencerSilence,
     seerCheckResult,
-    setSeerCheckResult,
     witchNightInfo,
   } = useSocket();
 
@@ -60,16 +59,32 @@ export const NightSkillPanel = () => {
     };
 
     return (
-      <div className="bg-rose-950/30 border border-rose-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">💘</span>
+      <div className="bg-rose-950/30 border border-rose-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">💘</span>
+            <div>
+              <h4 className="text-base font-bold text-rose-300">邱比特請睜眼</h4>
+              <p className="text-xs text-rose-300/70">請選擇任意兩位玩家連為生死情侶（已選 {cupidSelectedIds.length} / 2 位）</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('CUPID')}
+            className="text-[11px] text-rose-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊提醒 */}
+        <div className="p-3 bg-rose-950/50 border border-rose-900/50 rounded-xl text-xs text-rose-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-rose-300">邱比特請睜眼</h4>
-            <p className="text-xs text-rose-300/70">請選擇任意兩位玩家連為生死情侶（已選 {cupidSelectedIds.length} / 2 位）</p>
+            <b>愛神指引：</b>情侶生死相隨，一人出局另一人隨之殉情。若連出好人+狼人（人狼戀），將形成第三方陣營！
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {allPlayers.map((p) => {
             const isSelected = cupidSelectedIds.includes(p.id);
             return (
@@ -79,7 +94,7 @@ export const NightSkillPanel = () => {
                 onClick={() => handleCupidToggle(p.id)}
                 className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                   isSelected
-                    ? 'bg-rose-600 border-rose-400 text-white shadow-sm'
+                    ? 'bg-rose-600 border-rose-400 text-white shadow-sm font-bold'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-rose-500/50'
                 } cursor-pointer`}
               >
@@ -97,7 +112,7 @@ export const NightSkillPanel = () => {
             }
           }}
           disabled={cupidSelectedIds.length !== 2}
-          className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
         >
           {actionDoneMsg || '💘 確認連為生死情侶'}
         </button>
@@ -108,16 +123,32 @@ export const NightSkillPanel = () => {
   // 2. 攝夢人行動面板
   if (gamePhase === 'NIGHT_DREAMCATCHER' && role === 'DREAMCATCHER') {
     return (
-      <div className="bg-cyan-950/30 border border-cyan-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">💤</span>
+      <div className="bg-cyan-950/30 border border-cyan-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">💤</span>
+            <div>
+              <h4 className="text-base font-bold text-cyan-300">攝夢人請睜眼</h4>
+              <p className="text-xs text-cyan-300/70">請選擇今晚入夢的玩家（連續兩夜攝夢同一人將導致其夢死）</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('DREAMCATCHER')}
+            className="text-[11px] text-cyan-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-cyan-950/50 border border-cyan-900/50 rounded-xl text-xs text-cyan-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-cyan-300">攝夢人請睜眼</h4>
-            <p className="text-xs text-cyan-300/70">請選擇今晚入夢的玩家（連續兩夜攝夢同一人將導致其夢死）</p>
+            <b>夢境法則：</b>入夢者當夜免疫狼刀與毒藥；連續兩夜攝夢同一人使其【夢死】；若攝夢人出局，入夢者同死。
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers.map((p) => {
             const isSelected = selectedTargetId === p.id;
             return (
@@ -127,7 +158,7 @@ export const NightSkillPanel = () => {
                 onClick={() => setSelectedTargetId(p.id)}
                 className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                   isSelected
-                    ? 'bg-cyan-600 border-cyan-400 text-white shadow-sm'
+                    ? 'bg-cyan-600 border-cyan-400 text-white shadow-sm font-bold'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-cyan-500/50'
                 } cursor-pointer`}
               >
@@ -146,7 +177,7 @@ export const NightSkillPanel = () => {
               }
             }}
             disabled={!selectedTargetId}
-            className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
           >
             {actionDoneMsg || '💤 鎖定入夢'}
           </button>
@@ -167,16 +198,32 @@ export const NightSkillPanel = () => {
   // 3. 守衛行動面板
   if (gamePhase === 'NIGHT_GUARD' && role === 'GUARD') {
     return (
-      <div className="bg-blue-950/30 border border-blue-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🛡️</span>
+      <div className="bg-blue-950/30 border border-blue-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🛡️</span>
+            <div>
+              <h4 className="text-base font-bold text-blue-300">守衛請睜眼</h4>
+              <p className="text-xs text-blue-300/70">請選擇今晚要守護的玩家（不可連續兩晚守護同一人）</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('GUARD')}
+            className="text-[11px] text-blue-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-blue-950/50 border border-blue-900/50 rounded-xl text-xs text-blue-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-blue-300">守衛請睜眼</h4>
-            <p className="text-xs text-blue-300/70">請選擇今晚要守護的玩家（不可連續兩晚守護同一人）</p>
+            <b>聖盾提示：</b>不可連續兩晚守護同一個人（上夜守護者已置灰禁用）；守衛無法抵擋女巫毒藥。
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers.map((p) => {
             const isLastGuarded = myPlayer.lastGuardedId === p.id;
             const isSelected = selectedTargetId === p.id;
@@ -188,7 +235,7 @@ export const NightSkillPanel = () => {
                 onClick={() => setSelectedTargetId(p.id)}
                 className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                   isSelected
-                    ? 'bg-blue-600 border-blue-400 text-white shadow-sm'
+                    ? 'bg-blue-600 border-blue-400 text-white shadow-sm font-bold'
                     : isLastGuarded
                     ? 'bg-zinc-950/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-blue-500/50 cursor-pointer'
@@ -210,7 +257,7 @@ export const NightSkillPanel = () => {
               }
             }}
             disabled={!selectedTargetId}
-            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
           >
             {actionDoneMsg || '🛡️ 守護該玩家'}
           </button>
@@ -231,16 +278,32 @@ export const NightSkillPanel = () => {
   // 4. 狼人行動面板
   if (gamePhase === 'NIGHT_WEREWOLF' && role === 'WEREWOLF') {
     return (
-      <div className="bg-red-950/30 border border-red-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🐺</span>
+      <div className="bg-red-950/30 border border-red-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🐺</span>
+            <div>
+              <h4 className="text-base font-bold text-red-300">狼人請睜眼</h4>
+              <p className="text-xs text-red-300/70">請與狼隊友協商並點擊今晚暗殺目標</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('WEREWOLF')}
+            className="text-[11px] text-red-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-red-950/50 border border-red-900/50 rounded-xl text-xs text-red-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-red-300">狼人請睜眼</h4>
-            <p className="text-xs text-red-300/70">請與狼隊友協商並點擊今晚暗殺目標</p>
+            <b>暗殺策略：</b>優先鎖定發言強勢或疑似神職（女巫、守衛、預言家）的玩家；亦可考慮自刀騙藥策略。
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers.map((p) => {
             const isSelected = selectedTargetId === p.id;
             return (
@@ -252,7 +315,7 @@ export const NightSkillPanel = () => {
                 }}
                 className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                   isSelected
-                    ? 'bg-red-600 border-red-400 text-white shadow-sm'
+                    ? 'bg-red-600 border-red-400 text-white shadow-sm font-bold'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-red-500/50'
                 } cursor-pointer`}
               >
@@ -279,28 +342,44 @@ export const NightSkillPanel = () => {
   // 5. 預言家行動面板
   if (gamePhase === 'NIGHT_SEER' && role === 'SEER') {
     return (
-      <div className="bg-purple-950/30 border border-purple-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🔮</span>
+      <div className="bg-purple-950/30 border border-purple-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🔮</span>
+            <div>
+              <h4 className="text-base font-bold text-purple-300">預言家請睜眼</h4>
+              <p className="text-xs text-purple-300/70">選擇一名玩家查驗其身分陣營</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('SEER')}
+            className="text-[11px] text-purple-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-purple-950/50 border border-purple-900/50 rounded-xl text-xs text-purple-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-purple-300">預言家請睜眼</h4>
-            <p className="text-xs text-purple-300/70">選擇一名玩家查驗其身分陣營</p>
+            <b>水晶球指引：</b>點擊查驗後即刻得知目標為【好人陣營】或【狼人陣營】。白天記得清晰報出查驗資訊！
           </div>
         </div>
 
         {seerCheckResult && (
-          <div className="mb-4 p-4 bg-purple-900/40 border border-purple-500/50 rounded-xl text-center">
-            <span className="text-xs text-purple-200 block mb-1">水晶球查驗結果：</span>
+          <div className="p-4 bg-purple-900/50 border border-purple-500/60 rounded-xl text-center shadow-lg">
+            <span className="text-xs text-purple-200 block mb-1">🔮 水晶球查驗結果：</span>
             <div className="text-base font-bold text-white">
               #{seerCheckResult.seatNumber} {seerCheckResult.targetName}
             </div>
-            <div className={`text-sm font-bold mt-1 ${seerCheckResult.isWerewolf ? 'text-red-400' : 'text-emerald-400'}`}>
+            <div className={`text-sm font-black mt-1 ${seerCheckResult.isWerewolf ? 'text-red-400' : 'text-emerald-400'}`}>
               身分為：{seerCheckResult.factionName}
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers
             .filter((p) => p.id !== myPlayer.id)
             .map((p) => {
@@ -311,7 +390,7 @@ export const NightSkillPanel = () => {
                   onClick={() => setSelectedTargetId(p.id)}
                   className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                     isSelected
-                      ? 'bg-purple-600 border-purple-400 text-white shadow-sm'
+                      ? 'bg-purple-600 border-purple-400 text-white shadow-sm font-bold'
                       : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50'
                   } cursor-pointer`}
                 >
@@ -329,7 +408,7 @@ export const NightSkillPanel = () => {
             }
           }}
           disabled={!selectedTargetId}
-          className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+          className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
         >
           {actionDoneMsg || '🔮 查驗該玩家身分'}
         </button>
@@ -342,17 +421,33 @@ export const NightSkillPanel = () => {
     const victimPlayer = witchNightInfo?.targetId ? room?.players.find((p) => p.id === witchNightInfo.targetId) : null;
 
     return (
-      <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🧪</span>
+      <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🧪</span>
+            <div>
+              <h4 className="text-base font-bold text-emerald-300">女巫請睜眼</h4>
+              <p className="text-xs text-emerald-300/70">您擁有解藥與毒藥各一瓶（同夜不可雙藥並用）</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('WITCH')}
+            className="text-[11px] text-emerald-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-emerald-950/50 border border-emerald-900/50 rounded-xl text-xs text-emerald-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-emerald-300">女巫請睜眼</h4>
-            <p className="text-xs text-emerald-300/70">您擁有解藥與毒藥各一瓶（同夜不可雙藥並用）</p>
+            <b>魔藥法則：</b>解藥毒藥全場各限 1 次且同夜不能並用；被毒殺的玩家（如獵人）出局時無法發動技能。
           </div>
         </div>
 
         {victimPlayer ? (
-          <div className="mb-4 p-3.5 bg-red-950/40 border border-red-800/60 rounded-xl flex items-center justify-between text-xs">
+          <div className="p-3.5 bg-red-950/40 border border-red-800/60 rounded-xl flex items-center justify-between text-xs">
             <div>
               <span className="text-red-300">今晚中刀倒牌的玩家：</span>
               <span className="font-semibold text-white ml-1">
@@ -371,7 +466,7 @@ export const NightSkillPanel = () => {
             </button>
           </div>
         ) : (
-          <div className="mb-4 p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-400 text-center">
+          <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-400 text-center">
             今晚暫無人中刀或守衛已守護成功。
           </div>
         )}
@@ -397,7 +492,7 @@ export const NightSkillPanel = () => {
                     }}
                     className={`p-2.5 rounded-lg border text-xs font-medium transition-all ${
                       isSelected && witchMode === 'POISON'
-                        ? 'bg-purple-600 border-purple-400 text-white shadow-sm'
+                        ? 'bg-purple-600 border-purple-400 text-white shadow-sm font-bold'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50'
                     } ${myPlayer.hasUsedPoison ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
@@ -416,7 +511,7 @@ export const NightSkillPanel = () => {
                 }
               }}
               disabled={myPlayer.hasUsedPoison || !selectedTargetId || witchMode !== 'POISON'}
-              className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+              className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
             >
               {actionDoneMsg || '🧪 確認使用毒藥'}
             </button>
@@ -438,16 +533,32 @@ export const NightSkillPanel = () => {
   // 7. 禁言長老行動面板
   if (gamePhase === 'NIGHT_SILENCER' && role === 'SILENCER') {
     return (
-      <div className="bg-indigo-950/30 border border-indigo-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🤐</span>
+      <div className="bg-indigo-950/30 border border-indigo-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🤐</span>
+            <div>
+              <h4 className="text-base font-bold text-indigo-300">禁言長老請睜眼</h4>
+              <p className="text-xs text-indigo-300/70">請指定一名玩家在次日白天禁言（不可連續兩晚禁言同一人）</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('SILENCER')}
+            className="text-[11px] text-indigo-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-indigo-950/50 border border-indigo-900/50 rounded-xl text-xs text-indigo-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-indigo-300">禁言長老請睜眼</h4>
-            <p className="text-xs text-indigo-300/70">請指定一名玩家在次日白天禁言（不可連續兩晚禁言同一人）</p>
+            <b>禁言提示：</b>被禁言玩家白天無法在聊天室發言，但保留投票權；不可連續兩夜禁言同一人。
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers
             .filter((p) => p.id !== myPlayer.id)
             .map((p) => {
@@ -461,7 +572,7 @@ export const NightSkillPanel = () => {
                   onClick={() => setSelectedTargetId(p.id)}
                   className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                     isSelected
-                      ? 'bg-indigo-600 border-indigo-400 text-white shadow-sm'
+                      ? 'bg-indigo-600 border-indigo-400 text-white shadow-sm font-bold'
                       : isLastSilenced
                       ? 'bg-zinc-950/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
                       : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-indigo-500/50 cursor-pointer'
@@ -483,7 +594,7 @@ export const NightSkillPanel = () => {
               }
             }}
             disabled={!selectedTargetId}
-            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-medium text-xs rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
           >
             {actionDoneMsg || '🤐 指定禁言'}
           </button>
@@ -504,16 +615,32 @@ export const NightSkillPanel = () => {
   // 8. 獵人開槍面板
   if (gamePhase === 'HUNTER_SHOOT' && role === 'HUNTER') {
     return (
-      <div className="bg-amber-950/30 border border-amber-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">💥</span>
+      <div className="bg-amber-950/30 border border-amber-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">💥</span>
+            <div>
+              <h4 className="text-base font-bold text-amber-300">獵人開槍技能發動</h4>
+              <p className="text-xs text-amber-300/70">請選擇一名存活玩家開槍帶走，或選擇壓槍不出</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('HUNTER')}
+            className="text-[11px] text-amber-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        {/* 技能錦囊 */}
+        <div className="p-3 bg-amber-950/50 border border-amber-900/50 rounded-xl text-xs text-amber-200 leading-relaxed flex items-start gap-2">
+          <span>💡</span>
           <div>
-            <h4 className="text-base font-bold text-amber-300">獵人開槍技能發動</h4>
-            <p className="text-xs text-amber-300/70">請選擇一名存活玩家開槍帶走，或選擇壓槍不出</p>
+            <b>拔槍提示：</b>帶走場上最可疑的狼人目標；若局勢不明亦可選擇壓槍避免誤傷好人。
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers
             .filter((p) => p.id !== myPlayer.id)
             .map((p) => {
@@ -524,7 +651,7 @@ export const NightSkillPanel = () => {
                   onClick={() => setSelectedTargetId(p.id)}
                   className={`p-3 rounded-xl border text-xs font-medium transition-all ${
                     isSelected
-                      ? 'bg-amber-600 border-amber-400 text-white shadow-sm'
+                      ? 'bg-amber-600 border-amber-400 text-white shadow-sm font-bold'
                       : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-amber-500/50'
                   } cursor-pointer`}
                 >
@@ -543,7 +670,7 @@ export const NightSkillPanel = () => {
               }
             }}
             disabled={!selectedTargetId}
-            className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold rounded-lg shadow-sm disabled:opacity-40 cursor-pointer text-xs"
+            className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg shadow-sm disabled:opacity-40 cursor-pointer text-xs"
           >
             {actionDoneMsg || '🎯 開槍帶走目標'}
           </button>
@@ -562,6 +689,8 @@ export const NightSkillPanel = () => {
   const phaseZh = PHASE_NAMES_ZH[gamePhase] || gamePhase;
   const getPhaseDescription = () => {
     switch (gamePhase) {
+      case 'ASSIGNING_ROLES':
+        return '🎲 正在分發身分牌與技能說明，即將進入黑夜...';
       case 'NIGHT_START':
         return '天黑請閉眼，夜行角色正在行動...';
       case 'NIGHT_CUPID':
@@ -598,10 +727,19 @@ export const NightSkillPanel = () => {
   };
 
   return (
-    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center text-zinc-400">
-      <span className="text-2xl block mb-2">⏳</span>
-      <h4 className="text-base font-bold text-zinc-200 mb-1">【{phaseZh}】</h4>
+    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center text-zinc-400 space-y-3">
+      <span className="text-3xl block">⏳</span>
+      <h4 className="text-base font-bold text-zinc-200">【{phaseZh}】</h4>
       <p className="text-xs text-zinc-400">{getPhaseDescription()}</p>
+
+      <div className="pt-2">
+        <button
+          onClick={() => onOpenSkillGuide?.(role)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 rounded-lg text-xs text-amber-300 font-medium transition-colors cursor-pointer"
+        >
+          <span>📖</span> 查看我的角色技能與圖鑑
+        </button>
+      </div>
     </div>
   );
 };
