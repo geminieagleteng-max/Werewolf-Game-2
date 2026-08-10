@@ -9,6 +9,7 @@ import DayVoteChat from './components/DayVoteChat';
 import RoleSkillModal from './components/RoleSkillModal';
 import RoleRevealModal from './components/RoleRevealModal';
 import MicrophoneSettingsModal from './components/MicrophoneSettingsModal';
+import { voiceManager } from './engine/VoiceManager';
 
 const GameContent = ({ onOpenSkillGuide }) => {
   const { room, gamePhase, myPlayer, gameOverData, restartGame, speakingPlayerIds, werewolfTeammates } = useSocket();
@@ -156,6 +157,21 @@ export default function App() {
 
 function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, handleOpenSkillGuide }) {
   const { room, myPlayer, isMicSettingsOpen, setIsMicSettingsOpen } = useSocket();
+
+  // 監聽全局使用者點擊與操作，瞬時解鎖瀏覽器 WebRTC 語音自動播放限制
+  React.useEffect(() => {
+    const handleGlobalUnlock = () => {
+      voiceManager.unlockAudioPlayback();
+    };
+    window.addEventListener('click', handleGlobalUnlock);
+    window.addEventListener('touchstart', handleGlobalUnlock);
+    window.addEventListener('keydown', handleGlobalUnlock);
+    return () => {
+      window.removeEventListener('click', handleGlobalUnlock);
+      window.removeEventListener('touchstart', handleGlobalUnlock);
+      window.removeEventListener('keydown', handleGlobalUnlock);
+    };
+  }, []);
 
   const handleOpenGuideWithFallback = (roleKey) => {
     const targetRole = roleKey || myPlayer?.role || 'VILLAGER';

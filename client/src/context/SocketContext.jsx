@@ -74,6 +74,13 @@ export const SocketProvider = ({ children }) => {
             canShoot: prev?.canShoot ?? me.canShoot,
           }));
         }
+
+        // 自動維護 P2P 全員雙向全網狀語音通話與解鎖播放
+        if (updatedRoom?.players) {
+          const peerIds = updatedRoom.players.map((p) => p.id);
+          peerNetwork.updateFullMeshAudio(peerIds);
+          voiceManager.unlockAudioPlayback();
+        }
       }
     });
 
@@ -82,12 +89,14 @@ export const SocketProvider = ({ children }) => {
       setMyRoleInfo(roleInfo);
       setWerewolfTeammates(teammates || []);
       addSystemLog(`🎴 您的身分牌已發放：【${roleInfo.name}】`);
+      voiceManager.unlockAudioPlayback();
     });
 
     const unsubPhaseChange = peerNetwork.on(SOCKET_EVENTS.GAME.PHASE_CHANGE, ({ phase, round, duration }) => {
       setGamePhase(phase);
       setGameRound(round);
       setPhaseDuration(duration);
+      voiceManager.unlockAudioPlayback();
       if (phase === 'NIGHT_START' || phase === 'NIGHT_SEER') {
         setSeerCheckResult(null);
       }

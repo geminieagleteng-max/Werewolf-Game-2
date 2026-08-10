@@ -246,40 +246,48 @@ export class PeerNetwork {
   }
 
   /**
+   * 與房間內全網狀所有連線目標建立 P2P 雙向 WebRTC 語音串流
+   */
+  updateFullMeshAudio(peerIds) {
+    if (!this.peer || !Array.isArray(peerIds)) return;
+
+    peerIds.forEach((targetPeerId) => {
+      if (targetPeerId && targetPeerId !== this.myPeerId && !this.activeCalls.has(targetPeerId)) {
+        try {
+          const call = this.peer.call(targetPeerId, voiceManager.localStream || undefined);
+          if (call) {
+            this.activeCalls.set(targetPeerId, call);
+            call.on('stream', (remoteStream) => {
+              voiceManager.handleRemoteStream(targetPeerId, remoteStream);
+            });
+            call.on('close', () => {
+              this.activeCalls.delete(targetPeerId);
+              voiceManager.removeRemoteStream(targetPeerId);
+            });
+            call.on('error', () => {
+              this.activeCalls.delete(targetPeerId);
+              voiceManager.removeRemoteStream(targetPeerId);
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to establish WebRTC media call to peer:', targetPeerId, err);
+        }
+      }
+    });
+  }
+
+  /**
    * 與房間內所有連線目標建立語音串流呼叫
    */
   connectAudioToAllPeers() {
     if (!this.peer) return;
-
+    const allPeerIds = [];
     if (this.isHost) {
-      this.connections.forEach((conn, peerId) => {
-        if (!this.activeCalls.has(peerId)) {
-          const call = this.peer.call(peerId, voiceManager.localStream || undefined);
-          if (call) {
-            this.activeCalls.set(peerId, call);
-            call.on('stream', (remoteStream) => {
-              voiceManager.handleRemoteStream(peerId, remoteStream);
-            });
-            call.on('close', () => {
-              this.activeCalls.delete(peerId);
-              voiceManager.removeRemoteStream(peerId);
-            });
-          }
-        }
-      });
-    } else if (this.hostPeerId && !this.activeCalls.has(this.hostPeerId)) {
-      const call = this.peer.call(this.hostPeerId, voiceManager.localStream || undefined);
-      if (call) {
-        this.activeCalls.set(this.hostPeerId, call);
-        call.on('stream', (remoteStream) => {
-          voiceManager.handleRemoteStream(this.hostPeerId, remoteStream);
-        });
-        call.on('close', () => {
-          this.activeCalls.delete(this.hostPeerId);
-          voiceManager.removeRemoteStream(this.hostPeerId);
-        });
-      }
+      allPeerIds.push(...Array.from(this.connections.keys()));
+    } else if (this.hostPeerId) {
+      allPeerIds.push(this.hostPeerId);
     }
+    this.updateFullMeshAudio(allPeerIds);
   }
 
   // 訪客將動作發送給房主 / 房主自行處理動作
