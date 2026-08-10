@@ -8,9 +8,10 @@ import NightSkillPanel from './components/NightSkillPanel';
 import DayVoteChat from './components/DayVoteChat';
 import RoleSkillModal from './components/RoleSkillModal';
 import RoleRevealModal from './components/RoleRevealModal';
+import MicrophoneSettingsModal from './components/MicrophoneSettingsModal';
 
 const GameContent = ({ onOpenSkillGuide }) => {
-  const { room, gamePhase, myPlayer, gameOverData, restartGame } = useSocket();
+  const { room, gamePhase, myPlayer, gameOverData, restartGame, speakingPlayerIds } = useSocket();
 
   // 若尚未進房或處於大廳等待狀態，顯示房間大廳
   if (!room || gamePhase === 'WAITING') {
@@ -29,24 +30,38 @@ const GameContent = ({ onOpenSkillGuide }) => {
 
           {/* 座位存活清單概覽 */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              👥 存活座位席
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                👥 存活座位席
+              </h4>
+              <span className="text-[10px] text-zinc-500">
+                🎙️ 綠框為說話中
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
-              {room.players.map((p) => (
-                <div
-                  key={p.id}
-                  className={`p-2 rounded-lg border text-xs flex items-center justify-between ${
-                    p.isAlive
-                      ? 'bg-slate-950 border-slate-800 text-white'
-                      : 'bg-red-950/20 border-red-900/40 text-slate-500 line-through'
-                  }`}
-                >
-                  <span className="font-mono font-bold">#{p.seatNumber}</span>
-                  <span className="truncate max-w-[70px]">{p.name}</span>
-                  <span>{p.isAlive ? '🟢' : '⚰️'}</span>
-                </div>
-              ))}
+              {room.players.map((p) => {
+                const isSpeaking = speakingPlayerIds?.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    className={`p-2 rounded-lg border text-xs flex items-center justify-between transition-all ${
+                      isSpeaking
+                        ? 'bg-emerald-950/70 border-emerald-500 text-emerald-200 ring-2 ring-emerald-400 shadow-md shadow-emerald-950 animate-pulse'
+                        : p.isAlive
+                        ? 'bg-slate-950 border-slate-800 text-white'
+                        : 'bg-red-950/20 border-red-900/40 text-slate-500 line-through'
+                    }`}
+                  >
+                    <span className="font-mono font-bold">#{p.seatNumber}</span>
+                    <span className="truncate max-w-[65px] flex items-center gap-1">
+                      {isSpeaking && <span className="text-[10px] animate-bounce">🎙️</span>}
+                      <span>{p.name}</span>
+                    </span>
+                    <span>{p.isAlive ? (isSpeaking ? '🔊' : '🟢') : '⚰️'}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -128,7 +143,7 @@ export default function App() {
 }
 
 function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, handleOpenSkillGuide }) {
-  const { room, myPlayer } = useSocket();
+  const { room, myPlayer, isMicSettingsOpen, setIsMicSettingsOpen } = useSocket();
 
   const handleOpenGuideWithFallback = (roleKey) => {
     const targetRole = roleKey || myPlayer?.role || 'VILLAGER';
@@ -152,6 +167,12 @@ function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, ha
         onClose={() => setIsSkillModalOpen(false)}
         initialRole={activeModalRole}
         roomRoleConfig={room?.roleConfig}
+      />
+
+      {/* 麥克風與語音通話設定 Modal */}
+      <MicrophoneSettingsModal
+        isOpen={isMicSettingsOpen}
+        onClose={() => setIsMicSettingsOpen(false)}
       />
     </div>
   );

@@ -77,6 +77,9 @@ const SOCKET_EVENTS = {
     VOTE_SKIP_DISCUSSION: 'action:vote_skip_discussion', // Client -> Server: 投票同意/取消跳過白天發言
     SKIP_DISCUSSION_UPDATE: 'action:skip_discussion_update', // Server -> Client: 廣播跳過發言投票進度
 
+    // 語音發言狀態 (Voice Speaking State)
+    SPEAKING_STATE: 'action:speaking_state',         // 廣播玩家發言/閉麥狀態
+
     // 獵人 (Hunter)
     HUNTER_SHOOT: 'action:hunter_shoot',             // Client -> Server: 獵人開槍選擇目標
     HUNTER_STATUS: 'action:hunter_status',           // Server -> Hunter: 通知獵人是否具備開槍資格

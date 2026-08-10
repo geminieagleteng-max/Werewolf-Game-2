@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { io } from 'socket.io-client';
 import { peerNetwork } from '../network/PeerNetwork';
 import { SOCKET_EVENTS } from '../engine/socketEvents';
+import { voiceManager } from '../engine/VoiceManager';
 
 const SocketContext = createContext(null);
 
@@ -31,6 +32,14 @@ export const SocketProvider = ({ children }) => {
     neededVotes: 0,
     hasPassed: false,
   });
+
+  // 語音通話與麥克風狀態
+  const [isMicMuted, setIsMicMuted] = useState(true);
+  const [isMicInitialized, setIsMicInitialized] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingPlayerIds, setSpeakingPlayerIds] = useState([]);
+  const [isMicSettingsOpen, setIsMicSettingsOpen] = useState(false);
 
   const addSystemLog = useCallback((msg) => {
     setSystemLogs((prev) => [
@@ -96,6 +105,12 @@ export const SocketProvider = ({ children }) => {
       setSkipDiscussionData(data);
     });
 
+    const unsubSpeaking = peerNetwork.on(SOCKET_EVENTS.ACTION.SPEAKING_STATE, ({ playerId, isSpeaking: spk }) => {
+      setSpeakingPlayerIds((prev) =>
+        spk ? Array.from(new Set([...prev, playerId])) : prev.filter((id) => id !== playerId)
+      );
+    });
+
     const unsubGameOver = peerNetwork.on(SOCKET_EVENTS.GAME.OVER, (data) => {
       setGameOverData(data);
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
@@ -115,6 +130,7 @@ export const SocketProvider = ({ children }) => {
       unsubSeer();
       unsubWitch();
       unsubSkipDiscussion();
+      unsubSpeaking();
       unsubGameOver();
       unsubError();
     };
@@ -193,6 +209,12 @@ export const SocketProvider = ({ children }) => {
 
     s.on('action:skip_discussion_update', (data) => {
       setSkipDiscussionData(data);
+    });
+
+    s.on('action:speaking_state', ({ playerId, isSpeaking: spk }) => {
+      setSpeakingPlayerIds((prev) =>
+        spk ? Array.from(new Set([...prev, playerId])) : prev.filter((id) => id !== playerId)
+      );
     });
 
     s.on('game:over', (data) => {
@@ -409,6 +431,61 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  // ----------------------------------------------------
+  // 麥克風與語音控制方法
+  // ----------------------------------------------------
+  useEffect(() => {
+    voiceManager.onVolumeChange = (vol) => {
+      setMicLevel(vol);
+    };
+
+    voiceManager.onSpeakingChange = (speaking) => {
+      setIsSpeaking(speaking);
+      if (myPlayer?.id) {
+        if (networkMode === 'P2P') {
+          peerNetwork.emit(SOCKET_EVENTS.ACTION.SPEAKING_STATE, { isSpeaking: speaking });
+        } else {
+          socket?.emit('action:speaking_state', { isSpeaking: speaking });
+        }
+      }
+    };
+
+    return () => {
+      voiceManager.onVolumeChange = null;
+      voiceManager.onSpeakingChange = null;
+    };
+  }, [myPlayer?.id, networkMode, socket]);
+
+  useEffect(() => {
+    if (myPlayer && (!myPlayer.isAlive || myPlayer.isSilenced)) {
+      voiceManager.setMuted(true);
+      setIsMicMuted(true);
+    }
+  }, [myPlayer?.isAlive, myPlayer?.isSilenced]);
+
+  const initMic = async (deviceId) => {
+    const res = await voiceManager.init(deviceId);
+    setIsMicInitialized(res.success);
+    setIsMicMuted(voiceManager.isMuted);
+    return res;
+  };
+
+  const toggleMic = async () => {
+    if (myPlayer && (!myPlayer.isAlive || myPlayer.isSilenced)) {
+      addSystemLog('⚠️ 您當前處於出局或禁言狀態，無法開麥發言。');
+      return;
+    }
+    if (!voiceManager.isInitialized) {
+      const res = await initMic();
+      if (!res.success) {
+        setErrorMessage('請允許瀏覽器麥克風權限以使用語音通話！');
+        return;
+      }
+    }
+    const newMuted = voiceManager.toggleMute();
+    setIsMicMuted(newMuted);
+  };
+
   const restartGame = () => {
     if (networkMode === 'P2P') {
       peerNetwork.emit(SOCKET_EVENTS.GAME.RESTART);
@@ -444,6 +521,15 @@ export const SocketProvider = ({ children }) => {
         setErrorMessage,
         skipDiscussionData,
         voteSkipDiscussion,
+        isMicMuted,
+        isMicInitialized,
+        micLevel,
+        isSpeaking,
+        speakingPlayerIds,
+        isMicSettingsOpen,
+        setIsMicSettingsOpen,
+        initMic,
+        toggleMic,
         createRoom,
         joinRoom,
         addBot,

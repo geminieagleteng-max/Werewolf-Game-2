@@ -1,6 +1,7 @@
 import Peer from 'peerjs';
 import { GameHostController } from '../engine/GameHostController';
 import { SOCKET_EVENTS } from '../engine/socketEvents';
+import { voiceManager } from '../engine/VoiceManager';
 
 const PEER_PREFIX = 'ww-room-v2-';
 
@@ -108,10 +109,27 @@ export class PeerNetwork {
           resolve({ roomId: this.roomId, room, player });
         });
 
+        // 監聽 WebRTC 語音呼叫
+        this.peer.on('call', (mediaConn) => {
+          mediaConn.answer(voiceManager.localStream || undefined);
+          mediaConn.on('stream', (remoteStream) => {
+            voiceManager.handleRemoteStream(mediaConn.peer, remoteStream);
+          });
+        });
+
         // 監聽訪客連入
         this.peer.on('connection', (conn) => {
           conn.on('open', () => {
             this.connections.set(conn.peer, conn);
+            // 嘗試建立語音連線
+            if (voiceManager.localStream) {
+              const call = this.peer.call(conn.peer, voiceManager.localStream);
+              if (call) {
+                call.on('stream', (remoteStream) => {
+                  voiceManager.handleRemoteStream(conn.peer, remoteStream);
+                });
+              }
+            }
           });
 
           conn.on('data', (raw) => {
@@ -165,6 +183,15 @@ export class PeerNetwork {
 
         this.peer.on('open', (id) => {
           this.myPeerId = id;
+
+          // 監聽來自房主或其他人的語音呼叫
+          this.peer.on('call', (mediaConn) => {
+            mediaConn.answer(voiceManager.localStream || undefined);
+            mediaConn.on('stream', (remoteStream) => {
+              voiceManager.handleRemoteStream(mediaConn.peer, remoteStream);
+            });
+          });
+
           const conn = this.peer.connect(targetHostPeerId, { reliable: true });
           this.hostConnection = conn;
 
@@ -177,6 +204,17 @@ export class PeerNetwork {
                 payload: { playerName: this.myPlayerName },
               })
             );
+
+            // 若麥克風串流已就緒，主動呼叫房主語音
+            if (voiceManager.localStream) {
+              const call = this.peer.call(targetHostPeerId, voiceManager.localStream);
+              if (call) {
+                call.on('stream', (remoteStream) => {
+                  voiceManager.handleRemoteStream(targetHostPeerId, remoteStream);
+                });
+              }
+            }
+
             resolve({ roomId: this.roomId });
           });
 
@@ -283,6 +321,12 @@ export class PeerNetwork {
       case SOCKET_EVENTS.ACTION.VOTE_SKIP_DISCUSSION:
         this.hostController.handleVoteSkipDiscussion(senderId, payload.skip);
         break;
+      case SOCKET_EVENTS.ACTION.SPEAKING_STATE:
+        this.hostController.adapter.broadcast(SOCKET_EVENTS.ACTION.SPEAKING_STATE, {
+          playerId: senderId,
+          isSpeaking: payload.isSpeaking,
+        });
+        break;
       default:
         break;
     }
@@ -329,6 +373,8 @@ export class PeerNetwork {
       this.hostController.room?.clearTimer();
       this.hostController = null;
     }
+
+    voiceManager.cleanup();
 
     this.isHost = false;
     this.roomId = null;
