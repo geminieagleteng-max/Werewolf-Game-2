@@ -11,7 +11,7 @@ import RoleRevealModal from './components/RoleRevealModal';
 import MicrophoneSettingsModal from './components/MicrophoneSettingsModal';
 
 const GameContent = ({ onOpenSkillGuide }) => {
-  const { room, gamePhase, myPlayer, gameOverData, restartGame, speakingPlayerIds } = useSocket();
+  const { room, gamePhase, myPlayer, gameOverData, restartGame, speakingPlayerIds, werewolfTeammates } = useSocket();
 
   // 若尚未進房或處於大廳等待狀態，顯示房間大廳
   if (!room || gamePhase === 'WAITING') {
@@ -19,6 +19,7 @@ const GameContent = ({ onOpenSkillGuide }) => {
   }
 
   const isHost = myPlayer?.isHost;
+  const isMeWolf = myPlayer?.role === 'WEREWOLF';
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto h-[calc(100vh-65px)] flex flex-col gap-4 sm:gap-6">
@@ -35,27 +36,38 @@ const GameContent = ({ onOpenSkillGuide }) => {
                 👥 存活座位席
               </h4>
               <span className="text-[10px] text-zinc-500">
-                🎙️ 綠框為說話中
+                {isMeWolf ? '🐺 紅框為狼隊友' : '🎙️ 綠框為說話中'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               {room.players.map((p) => {
                 const isSpeaking = speakingPlayerIds?.includes(p.id);
+                const isWolfTeammate = isMeWolf && werewolfTeammates?.some((w) => w.id === p.id);
+                const isMe = p.id === myPlayer?.id;
+
+                let cardStyle = 'bg-slate-950 border-slate-800 text-white';
+                if (!p.isAlive) {
+                  cardStyle = 'bg-red-950/20 border-red-900/40 text-slate-500 line-through';
+                } else if (isSpeaking) {
+                  cardStyle = 'bg-emerald-950/70 border-emerald-500 text-emerald-200 ring-2 ring-emerald-400 shadow-md shadow-emerald-950 animate-pulse';
+                } else if (isWolfTeammate) {
+                  cardStyle = 'bg-red-950/40 border-red-600/80 text-red-100 ring-1 ring-red-500/50';
+                }
+
                 return (
                   <div
                     key={p.id}
-                    className={`p-2 rounded-lg border text-xs flex items-center justify-between transition-all ${
-                      isSpeaking
-                        ? 'bg-emerald-950/70 border-emerald-500 text-emerald-200 ring-2 ring-emerald-400 shadow-md shadow-emerald-950 animate-pulse'
-                        : p.isAlive
-                        ? 'bg-slate-950 border-slate-800 text-white'
-                        : 'bg-red-950/20 border-red-900/40 text-slate-500 line-through'
-                    }`}
+                    className={`p-2 rounded-lg border text-xs flex items-center justify-between transition-all ${cardStyle}`}
                   >
                     <span className="font-mono font-bold">#{p.seatNumber}</span>
                     <span className="truncate max-w-[65px] flex items-center gap-1">
                       {isSpeaking && <span className="text-[10px] animate-bounce">🎙️</span>}
+                      {isWolfTeammate && (
+                        <span className="text-[9px] text-red-400 bg-red-950 px-1 py-0.2 rounded border border-red-800">
+                          {isMe ? '我' : '🐺狼'}
+                        </span>
+                      )}
                       <span>{p.name}</span>
                     </span>
                     <span>{p.isAlive ? (isSpeaking ? '🔊' : '🟢') : '⚰️'}</span>

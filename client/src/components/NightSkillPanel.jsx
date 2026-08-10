@@ -18,6 +18,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     silencerSilence,
     seerCheckResult,
     witchNightInfo,
+    werewolfTeammates,
   } = useSocket();
 
   const [selectedTargetId, setSelectedTargetId] = useState(null);
@@ -294,6 +295,37 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
             📖 技能指引
           </button>
         </div>
+
+        {/* 狼隊成員現況 */}
+        {werewolfTeammates && werewolfTeammates.length > 0 && (
+          <div className="p-3 bg-red-950/70 border border-red-800/80 rounded-xl space-y-1.5">
+            <div className="text-xs font-bold text-red-300 flex items-center gap-1.5">
+              <span>🐺</span> 狼隊同伴現況 ({werewolfTeammates.length} 狼)：
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {werewolfTeammates.map((w) => {
+                const isMe = w.id === myPlayer.id;
+                return (
+                  <span
+                    key={w.id}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border ${
+                      isMe
+                        ? 'bg-red-900/80 border-red-500 text-white shadow-sm ring-1 ring-red-400'
+                        : 'bg-zinc-950 border-zinc-700 text-zinc-200'
+                    }`}
+                  >
+                    <span className="font-mono text-red-400 font-bold">#{w.seatNumber}</span>
+                    <span>{w.name}</span>
+                    {isMe && <span className="text-[10px] text-amber-300">(您)</span>}
+                    <span className="text-[10px] text-zinc-400">
+                      {w.isAlive ? '🟢' : '⚰️'}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 技能錦囊 */}
         <div className="p-3 bg-red-950/50 border border-red-900/50 rounded-xl text-xs text-red-200 leading-relaxed flex items-start gap-2">

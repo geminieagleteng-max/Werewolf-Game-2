@@ -105,7 +105,7 @@ const ROLE_THEMES = {
 };
 
 export const RoleCard = ({ onOpenSkillGuide }) => {
-  const { myPlayer, myRoleInfo } = useSocket();
+  const { myPlayer, myRoleInfo, werewolfTeammates } = useSocket();
   const [isFlipped, setIsFlipped] = useState(true);
 
   if (!myPlayer || !myRoleInfo) {
@@ -226,7 +226,12 @@ export const RoleCard = ({ onOpenSkillGuide }) => {
               )}
               {role === 'WEREWOLF' && (
                 <div className="text-center text-red-400 font-medium">
-                  夜晚可與狼隊友協商暗殺
+                  {werewolfTeammates && werewolfTeammates.length > 1
+                    ? `狼隊友：${werewolfTeammates
+                        .filter((w) => w.id !== myPlayer.id)
+                        .map((w) => `#${w.seatNumber} ${w.name}`)
+                        .join('、')}`
+                    : '夜晚可指定暗殺目標'}
                 </div>
               )}
               {role === 'SEER' && (
@@ -261,6 +266,42 @@ export const RoleCard = ({ onOpenSkillGuide }) => {
           <span>📖</span> 技能詳解
         </button>
       </div>
+
+      {/* 狼人專屬：狼隊友詳細名單面板 */}
+      {role === 'WEREWOLF' && werewolfTeammates && werewolfTeammates.length > 0 && (
+        <div className="w-full max-w-[270px] mt-3 p-3.5 bg-red-950/40 border border-red-800/80 rounded-2xl shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-red-300 flex items-center gap-1.5">
+              <span>🐺</span> 狼人隊友列表 ({werewolfTeammates.length} 狼)
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            {werewolfTeammates.map((w) => {
+              const isMe = w.id === myPlayer.id;
+              return (
+                <div
+                  key={w.id}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between border transition-all ${
+                    isMe
+                      ? 'bg-red-900/50 border-red-500 text-white font-bold ring-1 ring-red-400'
+                      : 'bg-zinc-950/80 border-zinc-800 text-zinc-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-red-400 font-bold">#{w.seatNumber}</span>
+                    <span className="truncate max-w-[85px]">{w.name}</span>
+                    {isMe && <span className="text-[10px] text-amber-300">(您)</span>}
+                  </div>
+                  <span className="text-[10px] font-medium">
+                    {w.isAlive ? '🟢 存活' : '⚰️ 出局'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -127,12 +127,23 @@ export class GameHostController {
     this.adapter.broadcast(SOCKET_EVENTS.GAME.STARTED);
     this.broadcastState();
 
-    // 私密分發個人身分卡
+    // 私密分發個人身分卡 (狼人可獲知所有狼隊友名單)
+    const werewolves = Array.from(this.room.players.values())
+      .filter((w) => w.role === ROLES.WEREWOLF)
+      .map((w) => ({
+        id: w.id,
+        seatNumber: w.seatNumber,
+        name: w.name,
+        isAlive: w.isAlive,
+      }));
+
     this.room.players.forEach((p) => {
       const roleDef = ROLE_DEFINITIONS[p.role];
+      const isWolf = p.role === ROLES.WEREWOLF;
       this.adapter.sendTo(p.id, SOCKET_EVENTS.GAME.ROLE_ASSIGNED, {
         player: p.toPrivateJSON(),
         roleInfo: roleDef,
+        werewolfTeammates: isWolf ? werewolves : [],
       });
     });
 

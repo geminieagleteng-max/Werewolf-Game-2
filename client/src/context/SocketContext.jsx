@@ -41,6 +41,9 @@ export const SocketProvider = ({ children }) => {
   const [speakingPlayerIds, setSpeakingPlayerIds] = useState([]);
   const [isMicSettingsOpen, setIsMicSettingsOpen] = useState(false);
 
+  // 狼人隊友清單 (僅狼人身分持有)
+  const [werewolfTeammates, setWerewolfTeammates] = useState([]);
+
   const addSystemLog = useCallback((msg) => {
     setSystemLogs((prev) => [
       ...prev,
@@ -73,9 +76,10 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
-    const unsubRoleAssigned = peerNetwork.on(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, ({ player, roleInfo }) => {
+    const unsubRoleAssigned = peerNetwork.on(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, ({ player, roleInfo, werewolfTeammates: teammates }) => {
       setMyPlayer(player);
       setMyRoleInfo(roleInfo);
+      setWerewolfTeammates(teammates || []);
       addSystemLog(`🎴 您的身分牌已發放：【${roleInfo.name}】`);
     });
 
@@ -179,9 +183,10 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
-    s.on('game:role_assigned', ({ player, roleInfo }) => {
+    s.on('game:role_assigned', ({ player, roleInfo, werewolfTeammates: teammates }) => {
       setMyPlayer(player);
       setMyRoleInfo(roleInfo);
+      setWerewolfTeammates(teammates || []);
       addSystemLog(`🎴 您的身分牌已發放：【${roleInfo.name}】`);
     });
 
@@ -494,8 +499,14 @@ export const SocketProvider = ({ children }) => {
     }
     setGameOverData(null);
     setMyRoleInfo(null);
+    setWerewolfTeammates([]);
     setSkipDiscussionData({ skipVoters: [], aliveCount: 0, neededVotes: 0, hasPassed: false });
   };
+
+  const currentWerewolfTeammates = (werewolfTeammates || []).map((w) => {
+    const p = room?.players.find((rp) => rp.id === w.id);
+    return p ? { ...w, isAlive: p.isAlive, name: p.name, seatNumber: p.seatNumber } : w;
+  });
 
   return (
     <SocketContext.Provider
@@ -508,6 +519,7 @@ export const SocketProvider = ({ children }) => {
         room,
         myPlayer,
         myRoleInfo,
+        werewolfTeammates: currentWerewolfTeammates,
         gamePhase,
         gameRound,
         phaseDuration,

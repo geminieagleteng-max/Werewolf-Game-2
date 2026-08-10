@@ -83,7 +83,7 @@ const ROLE_THEMES = {
 };
 
 export const RoleRevealModal = ({ onOpenFullManual }) => {
-  const { myPlayer, myRoleInfo, gamePhase, phaseDuration } = useSocket();
+  const { myPlayer, myRoleInfo, werewolfTeammates, gamePhase, phaseDuration } = useSocket();
   const [dismissed, setDismissed] = useState(false);
   const [lastPhase, setLastPhase] = useState(null);
 
@@ -101,6 +101,8 @@ export const RoleRevealModal = ({ onOpenFullManual }) => {
   const role = myPlayer.role || myRoleInfo.id;
   const roleDef = ROLE_DEFINITIONS[role] || myRoleInfo;
   const theme = ROLE_THEMES[role] || ROLE_THEMES.VILLAGER;
+
+  const otherWolves = (werewolfTeammates || []).filter((w) => w.id !== myPlayer.id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg animate-fade-in">
@@ -136,6 +138,33 @@ export const RoleRevealModal = ({ onOpenFullManual }) => {
             「{roleDef.title || roleDef.description}」
           </span>
         </div>
+
+        {/* 狼人隊友專屬高亮橫幅 */}
+        {role === 'WEREWOLF' && (
+          <div className="w-full mb-3 p-3 bg-red-950/90 border border-red-500/80 rounded-2xl text-left shadow-lg">
+            <div className="text-xs font-bold text-red-300 flex items-center gap-1.5 mb-1.5">
+              <span>🐺</span> 狼隊成員揭曉（您的狼同伴）：
+            </div>
+            {otherWolves.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {otherWolves.map((w) => (
+                  <span
+                    key={w.id}
+                    className="px-2.5 py-1 bg-red-900/60 border border-red-500/60 rounded-lg text-xs font-semibold text-white flex items-center gap-1"
+                  >
+                    <span className="text-red-300 font-mono">#{w.seatNumber}</span>
+                    <span>{w.name}</span>
+                    <span className="text-[10px] text-red-300">({w.seatNumber}號位)</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-300">
+                您是本局唯一的一匹狼（單狼局），請全力隱藏身分！
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 核心技能與勝利目標簡報區塊 */}
         <div className="w-full space-y-2.5 text-left mb-6">

@@ -142,14 +142,25 @@ function setupSocketHandlers(io) {
       io.to(room.id).emit(SOCKET_EVENTS.GAME.STARTED);
       io.to(room.id).emit(SOCKET_EVENTS.ROOM.STATE_UPDATE, room.toPublicJSON());
 
-      // 私密推送各自的角色底牌與技能說明
+      // 私密推送各自的角色底牌與技能說明 (狼人獲取狼隊友清單)
+      const werewolves = Array.from(room.players.values())
+        .filter((w) => w.role === 'WEREWOLF')
+        .map((w) => ({
+          id: w.id,
+          seatNumber: w.seatNumber,
+          name: w.name,
+          isAlive: w.isAlive,
+        }));
+
       room.players.forEach((p) => {
         const roleDef = ROLE_DEFINITIONS[p.role];
+        const isWolf = p.role === 'WEREWOLF';
         const pSocket = io.sockets.sockets.get(p.socketId);
         if (pSocket) {
           pSocket.emit(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, {
             player: p.toPrivateJSON(),
             roleInfo: roleDef,
+            werewolfTeammates: isWolf ? werewolves : [],
           });
         }
       });
