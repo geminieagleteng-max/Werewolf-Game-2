@@ -426,26 +426,10 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     );
   }
 
-  // 5. 預言家行動面板 (支援每晚一次查驗最多 2 位玩家)
+  // 5. 預言家行動面板 (每晚僅限查驗 1 位存活玩家)
   if (gamePhase === 'NIGHT_SEER' && role === 'SEER') {
-    const seerResultsList = Array.isArray(seerCheckResult)
-      ? seerCheckResult
-      : seerCheckResult
-      ? [seerCheckResult]
-      : [];
-
-    const toggleSeerTarget = (targetId) => {
-      setSeerSelectedIds((prev) => {
-        if (prev.includes(targetId)) {
-          return prev.filter((id) => id !== targetId);
-        }
-        if (prev.length < 2) {
-          return [...prev, targetId];
-        }
-        // 若已滿 2 人，替換最後一個選擇
-        return [prev[0], targetId];
-      });
-    };
+    const singleResult = Array.isArray(seerCheckResult) ? seerCheckResult[0] : seerCheckResult;
+    const hasAlreadyChecked = Boolean(singleResult);
 
     return (
       <div className="bg-purple-950/30 border border-purple-800/60 rounded-2xl p-6 shadow-sm space-y-4">
@@ -455,7 +439,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
             <div>
               <h4 className="text-base font-bold text-purple-300">預言家請睜眼</h4>
               <p className="text-xs text-purple-300/70">
-                每晚可同時選擇 <b className="text-amber-300">最多 2 位玩家</b> 查驗身分陣營
+                每晚僅限選擇 <b className="text-amber-300">1 位玩家</b> 查驗身分陣營
               </p>
             </div>
           </div>
@@ -471,41 +455,23 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
         <div className="p-3 bg-purple-950/50 border border-purple-900/50 rounded-xl text-xs text-purple-200 leading-relaxed flex items-start gap-2">
           <span>💡</span>
           <div>
-            <b>雙重水晶球查驗：</b>點擊 1～2 位存活玩家，水晶球將同時為您揭曉他們的真實陣營（好人或狼人）！
+            <b>水晶球指引：</b>每晚可指定 1 名存活玩家查驗真實陣營（好人或狼人）。查驗後將鎖定結果，白天記得清晰報出查驗資訊！
           </div>
         </div>
 
         {/* 查驗結果展示看板 */}
-        {seerResultsList.length > 0 && (
-          <div className="p-3.5 bg-purple-950/80 border border-purple-500/80 rounded-2xl space-y-2 shadow-lg animate-fade-in">
-            <div className="text-xs text-purple-200 font-bold flex items-center gap-1.5">
-              <span>🔮</span> 水晶球雙重查驗結果（{seerResultsList.length} 位）：
+        {singleResult && (
+          <div className="p-4 bg-purple-900/60 border border-purple-500/80 rounded-2xl text-center shadow-xl animate-fade-in space-y-1">
+            <span className="text-xs text-purple-200 font-semibold block">🔮 今晚水晶球查驗結果：</span>
+            <div className="text-base font-bold text-white">
+              #{singleResult.seatNumber} {singleResult.targetName}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {seerResultsList.map((res, i) => (
-                <div
-                  key={res.targetId || i}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center shadow-sm ${
-                    res.isWerewolf
-                      ? 'bg-red-950/80 border-red-500 text-red-100 ring-1 ring-red-500/50'
-                      : 'bg-emerald-950/80 border-emerald-500 text-emerald-100 ring-1 ring-emerald-500/50'
-                  }`}
-                >
-                  <span className="text-[10px] text-zinc-400 font-mono mb-0.5">
-                    查驗第 {i + 1} 位
-                  </span>
-                  <div className="text-sm font-bold text-white">
-                    #{res.seatNumber} {res.targetName}
-                  </div>
-                  <div
-                    className={`text-xs font-black mt-1 ${
-                      res.isWerewolf ? 'text-red-400' : 'text-emerald-400'
-                    }`}
-                  >
-                    身分為：{res.factionName}
-                  </div>
-                </div>
-              ))}
+            <div
+              className={`text-sm font-black mt-1 ${
+                singleResult.isWerewolf ? 'text-red-400' : 'text-emerald-400'
+              }`}
+            >
+              身分為：{singleResult.factionName}
             </div>
           </div>
         )}
@@ -515,29 +481,27 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
           {alivePlayers
             .filter((p) => p.id !== myPlayer.id)
             .map((p) => {
-              const selectedIndex = seerSelectedIds.indexOf(p.id);
-              const isSelected = selectedIndex !== -1;
+              const isSelected = selectedTargetId === p.id;
+              const isThisChecked = singleResult && singleResult.targetId === p.id;
 
               return (
                 <button
                   key={p.id}
-                  onClick={() => toggleSeerTarget(p.id)}
-                  className={`p-3 rounded-xl border text-xs font-medium transition-all relative flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                    isSelected
+                  disabled={hasAlreadyChecked}
+                  onClick={() => setSelectedTargetId(p.id)}
+                  className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                    isThisChecked
+                      ? singleResult.isWerewolf
+                        ? 'bg-red-950/80 border-red-500 text-red-200 font-bold ring-1 ring-red-400'
+                        : 'bg-emerald-950/80 border-emerald-500 text-emerald-200 font-bold ring-1 ring-emerald-400'
+                      : isSelected
                       ? 'bg-purple-600 border-purple-400 text-white shadow-md shadow-purple-950 font-bold ring-2 ring-purple-300'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50'
+                      : hasAlreadyChecked
+                      ? 'bg-zinc-950/40 border-zinc-800 text-zinc-600 cursor-not-allowed'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50 cursor-pointer'
                   }`}
                 >
-                  <div className="flex items-center gap-1">
-                    <span className="font-mono">#{p.seatNumber}</span>
-                    <span className="truncate max-w-[75px]">{p.name}</span>
-                  </div>
-
-                  {isSelected && (
-                    <span className="px-1.5 py-0.2 text-[9px] rounded bg-purple-950 text-purple-200 border border-purple-400 font-mono">
-                      查驗 #{selectedIndex + 1}
-                    </span>
-                  )}
+                  #{p.seatNumber} {p.name}
                 </button>
               );
             })}
@@ -546,22 +510,22 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
         {/* 查驗操作送出按鈕 */}
         <button
           onClick={() => {
-            if (seerSelectedIds.length > 0) {
-              checkSeerTarget(seerSelectedIds);
-              setActionDoneMsg(`🔮 已成功送出查驗（${seerSelectedIds.length} 人）！`);
+            if (selectedTargetId && !hasAlreadyChecked) {
+              checkSeerTarget(selectedTargetId);
+              setActionDoneMsg('🔮 已查驗完成！');
             }
           }}
-          disabled={seerSelectedIds.length === 0}
-          className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          disabled={!selectedTargetId || hasAlreadyChecked}
+          className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
         >
           <span>🔮</span>
           <span>
-            {actionDoneMsg ||
-              (seerSelectedIds.length === 2
-                ? '立即查驗這 2 位玩家身分'
-                : seerSelectedIds.length === 1
-                ? '查驗所選 1 位玩家（亦可再選 1 位）'
-                : '請點擊選擇 1 ~ 2 位玩家進行查驗')}
+            {hasAlreadyChecked
+              ? '✅ 今晚已完成查驗（每晚僅限查驗 1 人）'
+              : actionDoneMsg ||
+                (selectedTargetId
+                  ? `查驗 #${alivePlayers.find((p) => p.id === selectedTargetId)?.seatNumber} 號玩家身分`
+                  : '請點擊選擇 1 位玩家進行查驗')}
           </span>
         </button>
       </div>

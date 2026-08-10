@@ -236,7 +236,7 @@ export const RoleCard = ({ onOpenSkillGuide }) => {
               )}
               {role === 'SEER' && (
                 <div className="text-center text-purple-300 font-medium">
-                  每晚可同時查驗最多 2 位玩家陣營
+                  每晚可查驗一人真實陣營
                 </div>
               )}
               {role === 'VILLAGER' && (

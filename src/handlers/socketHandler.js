@@ -235,24 +235,21 @@ function setupSocketHandlers(io) {
       });
     });
 
-    // 預言家查驗 (每晚可查驗最多 2 位玩家身分)
+    // 預言家查驗 (嚴格限制：每晚僅限查驗 1 位存活玩家)
     socket.on(SOCKET_EVENTS.ACTION.SEER_CHECK, ({ targetId, targetIds }) => {
       const { room, player } = roomManager.findPlayerBySocketId(socket.id);
       if (!room || !room.game || room.game.phase !== GAME_PHASES.NIGHT_SEER) return;
 
-      const ids = targetIds || targetId;
-      const checkRes = room.game.handleSeerCheck(player.id, ids);
+      const tId = targetId || (Array.isArray(targetIds) ? targetIds[0] : targetIds);
+      const checkRes = room.game.handleSeerCheck(player.id, tId);
       if (!checkRes.success) {
         return socket.emit(SOCKET_EVENTS.ROOM.ERROR, { message: checkRes.message });
       }
 
       // 私密回傳查驗結果
-      socket.emit(SOCKET_EVENTS.ACTION.SEER_RESULT, checkRes.results);
-      const msg = checkRes.results
-        .map(r => `【#${r.seatNumber} ${r.targetName}：${r.factionName}】`)
-        .join('、');
+      socket.emit(SOCKET_EVENTS.ACTION.SEER_RESULT, checkRes.result);
       socket.emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `🔮 水晶球查驗結果：${msg}`,
+        message: `🔮 查驗結果：【#${checkRes.result.seatNumber} ${checkRes.result.targetName}】身分為 ${checkRes.result.factionName}`,
       });
     });
 

@@ -66,13 +66,8 @@ export function getBotNightAction(botPlayer, game) {
   }
 
   if (botPlayer.role === ROLES.SEER) {
-    const shuffled = [...otherAlive].sort(() => Math.random() - 0.5);
-    const targets = shuffled.slice(0, 2);
-    return {
-      type: 'seer_check',
-      targetIds: targets.map((t) => t.id),
-      targetId: targets[0] ? targets[0].id : null,
-    };
+    const target = otherAlive[Math.floor(Math.random() * otherAlive.length)];
+    return { type: 'seer_check', targetId: target ? target.id : null };
   }
 
   if (botPlayer.role === ROLES.WITCH) {
