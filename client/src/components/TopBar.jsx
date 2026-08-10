@@ -134,52 +134,50 @@ export const TopBar = ({ onOpenSkillGuide }) => {
 
         {/* 右側：語音麥克風、技能指南快捷鍵、連線狀態與操作 */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {room && (
-            <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 shadow-sm">
-              <button
-                onClick={toggleMic}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                  !isMicMuted
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm ring-1 ring-emerald-400'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200'
-                }`}
-                title={!isMicMuted ? '麥克風開啓中（點擊靜音）' : '麥克風已靜音（點擊開麥）'}
-              >
-                <span className={!isMicMuted && isSpeaking ? 'animate-bounce' : ''}>
-                  {!isMicMuted ? '🎙️' : '🔇'}
-                </span>
-                <span className="text-[11px] hidden md:inline">
-                  {!isMicMuted ? (isSpeaking ? '發言中...' : '開麥中') : '已靜音'}
-                </span>
-                {!isMicMuted && (
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      micLevel > 15 ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400'
-                    }`}
-                  />
-                )}
-              </button>
-
-              <button
-                onClick={() => setIsMicSettingsOpen(true)}
-                className="px-1.5 py-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors cursor-pointer text-xs"
-                title="麥克風與語音設定"
-              >
-                ⚙️
-              </button>
-            </div>
-          )}
-
-          {room && (
+          {/* 麥克風控制按鈕 (全域常駐) */}
+          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 shadow-sm">
             <button
-              onClick={() => onOpenSkillGuide?.(myPlayer?.role)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 border border-amber-500/50 rounded-lg text-xs text-amber-300 font-semibold transition-all cursor-pointer shadow-sm"
-              title="查看角色技能說明與圖鑑"
+              onClick={toggleMic}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                !isMicMuted
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm ring-1 ring-emerald-400'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200'
+              }`}
+              title={!isMicMuted ? '麥克風開啓中（點擊靜音）' : '麥克風已靜音（點擊開麥）'}
             >
-              <span>📖</span>
-              <span className="hidden sm:inline">角色技能</span>
+              <span className={!isMicMuted && isSpeaking ? 'animate-bounce' : ''}>
+                {!isMicMuted ? '🎙️' : '🔇'}
+              </span>
+              <span className="text-[11px]">
+                {!isMicMuted ? (isSpeaking ? '發言中...' : '開麥中') : '麥克風'}
+              </span>
+              {!isMicMuted && (
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    micLevel > 15 ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400'
+                  }`}
+                />
+              )}
             </button>
-          )}
+
+            <button
+              onClick={() => setIsMicSettingsOpen(true)}
+              className="px-1.5 py-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors cursor-pointer text-xs"
+              title="麥克風與語音設定"
+            >
+              ⚙️
+            </button>
+          </div>
+
+          {/* 角色技能百科按鈕 (全域常駐) */}
+          <button
+            onClick={() => onOpenSkillGuide?.(myPlayer?.role || 'WEREWOLF')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 border border-amber-500/50 rounded-lg text-xs text-amber-300 font-semibold transition-all cursor-pointer shadow-sm"
+            title="查看角色技能說明與圖鑑"
+          >
+            <span>📖</span>
+            <span className="hidden sm:inline">角色技能</span>
+          </button>
 
           <button
             onClick={() => {

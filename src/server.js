@@ -19,10 +19,20 @@ const io = new Server(server, {
   },
 });
 
+const fs = require('fs');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+
+const distPath = path.join(__dirname, '../client/dist');
+const publicPath = path.join(__dirname, '../public');
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+} else {
+  app.use(express.static(publicPath));
+}
 
 // ----------------------------------------------------
 // REST API 輔助端點
@@ -54,6 +64,17 @@ app.get('/api/game-info', (req, res) => {
 
 // 註冊 Socket.io 核心事件監聽
 setupSocketHandlers(io);
+
+// SPA 頁面路由支援
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+  if (fs.existsSync(path.join(distPath, 'index.html'))) {
+    return res.sendFile(path.join(distPath, 'index.html'));
+  }
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
 
 // 僅在作為主程式執行時啟動監聽
 const PORT = process.env.PORT || 3000;

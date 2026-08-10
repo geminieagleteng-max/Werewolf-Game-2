@@ -29,6 +29,11 @@ export const Lobby = () => {
     fillBots,
     errorMessage,
     setErrorMessage,
+    isMicMuted,
+    toggleMic,
+    isSpeaking,
+    micLevel,
+    setIsMicSettingsOpen,
   } = useSocket();
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('werewolf_player_name') || '玩家一');
@@ -174,7 +179,7 @@ export const Lobby = () => {
           )}
 
           {/* 暱稱輸入 */}
-          <div className="max-w-sm mx-auto mb-8">
+          <div className="max-w-sm mx-auto mb-5">
             <label className="block text-xs font-medium text-zinc-400 mb-1.5">
               玩家暱稱
             </label>
@@ -185,6 +190,51 @@ export const Lobby = () => {
               placeholder="輸入您的暱稱..."
               className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
             />
+          </div>
+
+          {/* 麥克風快速檢測條 */}
+          <div className="max-w-sm mx-auto mb-8 p-3 bg-zinc-950/80 border border-zinc-800 rounded-xl flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  !isMicMuted
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-400 shadow-sm'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
+                }`}
+                title={!isMicMuted ? '麥克風開啟中（點擊靜音）' : '麥克風已靜音（點擊開麥）'}
+              >
+                {!isMicMuted ? '🎙️' : '🔇'}
+              </button>
+              <div>
+                <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <span>{!isMicMuted ? '麥克風已開啟' : '麥克風已靜音'}</span>
+                  {!isMicMuted && (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        micLevel > 15 ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400'
+                      }`}
+                    />
+                  )}
+                </div>
+                <div className="text-[10px] text-zinc-500">
+                  {!isMicMuted
+                    ? isSpeaking
+                      ? '🟢 正在發言中...'
+                      : `收音就緒 (${micLevel}%)`
+                    : '支援 WebRTC 多人即時語音通話'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsMicSettingsOpen(true)}
+              className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <span>⚙️ 設定</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -371,9 +421,43 @@ export const Lobby = () => {
           </div>
         </div>
 
+        {/* 語音麥克風狀態列 */}
+        <div className="mt-4 pt-3.5 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleMic}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                !isMicMuted
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-400 shadow-sm'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+              }`}
+            >
+              <span>{!isMicMuted ? '🎙️' : '🔇'}</span>
+              <span>{!isMicMuted ? (isSpeaking ? '發言中...' : '麥克風已開') : '點擊開麥通話'}</span>
+              {!isMicMuted && (
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    micLevel > 15 ? 'bg-emerald-300 animate-ping' : 'bg-emerald-400'
+                  }`}
+                />
+              )}
+            </button>
+            <span className="text-[11px] text-zinc-400">零延遲 WebRTC 多人即時語音</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsMicSettingsOpen(true)}
+            className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 rounded-lg text-xs flex items-center gap-1 cursor-pointer"
+          >
+            <span>⚙️ 麥克風音訊設定</span>
+          </button>
+        </div>
+
         {/* 房主 AI 工具列 */}
         {isHost && playerCount < max && (
-          <div className="mt-4 pt-3.5 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="mt-3 pt-3 border-t border-zinc-800/60 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="text-zinc-400">人數不足？可使用 AI 機器人補位測試：</span>
             <div className="flex items-center gap-2">
               <button
