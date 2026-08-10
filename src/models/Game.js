@@ -209,7 +209,7 @@ class Game {
   }
 
   /**
-   * 女巫行動 (救人或毒人)
+   * 女巫行動 (救人或毒人，同夜絕對禁止雙藥並用)
    */
   handleWitchAction(witchPlayerId, { useAntidote, poisonTargetId }) {
     const witch = this.players.find(p => p.id === witchPlayerId);
@@ -220,6 +220,14 @@ class Game {
     // 檢查不能同時使用兩瓶藥
     if (useAntidote && poisonTargetId) {
       return { success: false, message: '同一夜不能同時使用解藥與毒藥！' };
+    }
+
+    // 若今晚已發動過任一藥劑，禁止再發動另一藥劑
+    if (useAntidote && this.nightActions.witchPoisonTargetId) {
+      return { success: false, message: '今晚已使用過毒藥，同夜不可再使用解藥！' };
+    }
+    if (poisonTargetId && this.nightActions.witchUsedAntidote) {
+      return { success: false, message: '今晚已使用過解藥，同夜不可再使用毒藥！' };
     }
 
     // 解藥處理

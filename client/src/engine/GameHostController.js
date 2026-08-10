@@ -679,6 +679,8 @@ export class GameHostController {
       this.adapter.sendTo(playerId, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
         message: useAntidote ? '🧪 使用了解藥。' : poisonTargetId ? '🧪 使用了毒藥。' : '🧪 今晚未使用藥劑。',
       });
+    } else {
+      this.adapter.sendTo(playerId, SOCKET_EVENTS.ROOM.ERROR, { message: res.message });
     }
   }
 

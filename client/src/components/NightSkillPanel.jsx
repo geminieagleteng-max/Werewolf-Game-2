@@ -26,6 +26,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
   const [cupidSelectedIds, setCupidSelectedIds] = useState([]);
   const [seerSelectedIds, setSeerSelectedIds] = useState([]);
   const [witchMode, setWitchMode] = useState(null); // 'POISON' | null
+  const [witchActionDone, setWitchActionDone] = useState(null); // 'ANTIDOTE' | 'POISON' | 'PASS' | null
   const [actionDoneMsg, setActionDoneMsg] = useState('');
 
   // 階段切換時自動清空暫存選擇
@@ -33,6 +34,8 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     setSelectedTargetId(null);
     setCupidSelectedIds([]);
     setSeerSelectedIds([]);
+    setWitchMode(null);
+    setWitchActionDone(null);
     setActionDoneMsg('');
   }, [gamePhase]);
 
@@ -532,9 +535,12 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     );
   }
 
-  // 6. 女巫行動面板
+  // 6. 女巫行動面板 (嚴格互斥：同夜絕對禁止雙藥並用)
   if (gamePhase === 'NIGHT_WITCH' && role === 'WITCH') {
     const victimPlayer = witchNightInfo?.targetId ? room?.players.find((p) => p.id === witchNightInfo.targetId) : null;
+    const isAntidoteUsedBefore = myPlayer.hasUsedAntidote;
+    const isPoisonUsedBefore = myPlayer.hasUsedPoison;
+    const hasActedTonight = Boolean(witchActionDone);
 
     return (
       <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-2xl p-6 shadow-sm space-y-4">
@@ -543,7 +549,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
             <span className="text-2xl">🧪</span>
             <div>
               <h4 className="text-base font-bold text-emerald-300">女巫請睜眼</h4>
-              <p className="text-xs text-emerald-300/70">您擁有解藥與毒藥各一瓶（同夜不可雙藥並用）</p>
+              <p className="text-xs text-emerald-300/70">您擁有解藥與毒藥各一瓶（同夜絕對不可雙藥並用）</p>
             </div>
           </div>
           <button
@@ -558,10 +564,11 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
         <div className="p-3 bg-emerald-950/50 border border-emerald-900/50 rounded-xl text-xs text-emerald-200 leading-relaxed flex items-start gap-2">
           <span>💡</span>
           <div>
-            <b>魔藥法則：</b>解藥毒藥全場各限 1 次且同夜不能並用；被毒殺的玩家（如獵人）出局時無法發動技能。
+            <b>魔藥法則：</b>解藥與毒藥全場各限 1 次；<b>同一個夜晚絕對不能同時使用解藥與毒藥</b>。
           </div>
         </div>
 
+        {/* 1. 解藥區塊 */}
         {victimPlayer ? (
           <div className="p-3.5 bg-red-950/40 border border-red-800/60 rounded-xl flex items-center justify-between text-xs">
             <div>
@@ -572,13 +579,22 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
             </div>
             <button
               onClick={() => {
-                useWitchSkill(true, null);
-                setActionDoneMsg('🧪 已使用解藥救起該玩家！');
+                if (!hasActedTonight && !isAntidoteUsedBefore) {
+                  useWitchSkill(true, null);
+                  setWitchActionDone('ANTIDOTE');
+                  setActionDoneMsg('🧪 已使用解藥救起該玩家！');
+                }
               }}
-              disabled={myPlayer.hasUsedAntidote}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-medium rounded-lg transition-colors cursor-pointer"
+              disabled={isAntidoteUsedBefore || hasActedTonight}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
-              {myPlayer.hasUsedAntidote ? '解藥已用' : '使用解藥救人'}
+              {witchActionDone === 'ANTIDOTE'
+                ? '✅ 已用解藥救人'
+                : isAntidoteUsedBefore
+                ? '解藥全場已用'
+                : hasActedTonight
+                ? '今晚已發動其他動作'
+                : '使用解藥救人'}
             </button>
           </div>
         ) : (
@@ -587,10 +603,13 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
           </div>
         )}
 
-        <div className="pt-2 border-t border-zinc-800">
+        {/* 2. 毒藥區塊 */}
+        <div className={`pt-2 border-t border-zinc-800 transition-opacity ${hasActedTonight && witchActionDone !== 'POISON' ? 'opacity-40' : ''}`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-zinc-300">使用毒藥毒殺：</span>
-            <span className="text-[11px] text-zinc-500">{myPlayer.hasUsedPoison ? '毒藥已用' : '毒藥可用'}</span>
+            <span className="text-xs font-semibold text-zinc-300">使用毒藥毒殺（與解藥互斥）：</span>
+            <span className="text-[11px] text-zinc-500">
+              {isPoisonUsedBefore ? '毒藥全場已用' : witchActionDone === 'ANTIDOTE' ? '今晚已用解藥' : '毒藥可用'}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
@@ -598,19 +617,22 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
               .filter((p) => p.id !== myPlayer.id)
               .map((p) => {
                 const isSelected = selectedTargetId === p.id;
+                const isPoisonDisabled = isPoisonUsedBefore || hasActedTonight;
                 return (
                   <button
                     key={p.id}
-                    disabled={myPlayer.hasUsedPoison}
+                    disabled={isPoisonDisabled}
                     onClick={() => {
-                      setSelectedTargetId(p.id);
-                      setWitchMode('POISON');
+                      if (!isPoisonDisabled) {
+                        setSelectedTargetId(p.id);
+                        setWitchMode('POISON');
+                      }
                     }}
                     className={`p-2.5 rounded-lg border text-xs font-medium transition-all ${
                       isSelected && witchMode === 'POISON'
-                        ? 'bg-purple-600 border-purple-400 text-white shadow-sm font-bold'
+                        ? 'bg-purple-600 border-purple-400 text-white shadow-sm font-bold ring-2 ring-purple-400'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-purple-500/50'
-                    } ${myPlayer.hasUsedPoison ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                    } ${isPoisonDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                   >
                     #{p.seatNumber} {p.name}
                   </button>
@@ -621,24 +643,31 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
           <div className="flex gap-2">
             <button
               onClick={() => {
-                if (selectedTargetId && witchMode === 'POISON') {
+                if (selectedTargetId && witchMode === 'POISON' && !hasActedTonight && !isPoisonUsedBefore) {
                   useWitchSkill(false, selectedTargetId);
-                  setActionDoneMsg('🧪 已使用毒藥毒殺目標！');
+                  setWitchActionDone('POISON');
+                  setActionDoneMsg(`🧪 已使用毒藥毒殺 #${alivePlayers.find(p => p.id === selectedTargetId)?.seatNumber} 號！`);
                 }
               }}
-              disabled={myPlayer.hasUsedPoison || !selectedTargetId || witchMode !== 'POISON'}
-              className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+              disabled={isPoisonUsedBefore || !selectedTargetId || witchMode !== 'POISON' || hasActedTonight}
+              className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
-              {actionDoneMsg || '🧪 確認使用毒藥'}
+              {witchActionDone === 'POISON'
+                ? '✅ 已使用毒藥毒殺'
+                : actionDoneMsg || '🧪 確認使用毒藥'}
             </button>
             <button
               onClick={() => {
-                useWitchSkill(false, null);
-                setActionDoneMsg('🧪 今晚不用藥');
+                if (!hasActedTonight) {
+                  useWitchSkill(false, null);
+                  setWitchActionDone('PASS');
+                  setActionDoneMsg('🧪 今晚不用藥');
+                }
               }}
-              className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg cursor-pointer"
+              disabled={hasActedTonight}
+              className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 text-xs rounded-lg cursor-pointer disabled:cursor-not-allowed"
             >
-              不使用藥劑
+              {witchActionDone === 'PASS' ? '✅ 已選擇不用藥' : '不使用藥劑'}
             </button>
           </div>
         </div>
