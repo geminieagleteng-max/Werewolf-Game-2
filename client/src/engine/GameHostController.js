@@ -103,6 +103,26 @@ export class GameHostController {
     }
   }
 
+  kickPlayer(targetPlayerId) {
+    if (!this.room) return;
+    const targetPlayer = this.room.players.get(targetPlayerId);
+    if (targetPlayer && !targetPlayer.isHost) {
+      // 私密通知被踢出的玩家
+      this.adapter.sendTo(targetPlayerId, SOCKET_EVENTS.ROOM.KICKED, {
+        message: '您已被房主請出房間。',
+      });
+
+      // 從房間移除玩家
+      this.room.removePlayer(targetPlayerId);
+
+      // 廣播最新房間狀態
+      this.broadcastState();
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `⛔ 玩家【${targetPlayer.name}】已被房主請出房間。`,
+      });
+    }
+  }
+
   toggleReady(playerId) {
     if (!this.room) return;
     const p = this.room.players.get(playerId);

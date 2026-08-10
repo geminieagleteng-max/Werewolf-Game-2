@@ -552,8 +552,12 @@ export const Lobby = () => {
               {/* 房主踢人 / 移除操作 */}
               {isHost && !player.isHost && (
                 <button
-                  onClick={() => kickPlayer(player.id)}
-                  className="text-[10px] text-zinc-500 hover:text-red-400 text-center cursor-pointer transition-colors"
+                  onClick={() => {
+                    if (window.confirm(`確定要將【${player.name}】請出房間嗎？`)) {
+                      kickPlayer(player.id);
+                    }
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-red-950/60 hover:bg-red-900 border border-red-800/80 text-red-300 rounded cursor-pointer transition-colors"
                 >
                   {player.isBot ? '移除' : '請離'}
                 </button>

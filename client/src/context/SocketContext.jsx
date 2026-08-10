@@ -125,6 +125,15 @@ export const SocketProvider = ({ children }) => {
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
     });
 
+    const unsubKicked = peerNetwork.on(SOCKET_EVENTS.ROOM.KICKED, ({ message }) => {
+      setRoom(null);
+      setMyPlayer(null);
+      setMyRoleInfo(null);
+      setGamePhase('WAITING');
+      setErrorMessage(message || '您已被房主請出房間。');
+      addSystemLog(`⛔ ${message || '您已被房主請出房間。'}`);
+    });
+
     const unsubError = peerNetwork.on(SOCKET_EVENTS.ROOM.ERROR, ({ message }) => {
       setErrorMessage(message);
       addSystemLog(`⚠️ 提示: ${message}`);
@@ -142,6 +151,7 @@ export const SocketProvider = ({ children }) => {
       unsubWolfTeamSync();
       unsubSpeaking();
       unsubGameOver();
+      unsubKicked();
       unsubError();
     };
   }, [networkMode, addSystemLog]);
@@ -235,6 +245,15 @@ export const SocketProvider = ({ children }) => {
     s.on('game:over', (data) => {
       setGameOverData(data);
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
+    });
+
+    s.on('room:kicked', ({ message }) => {
+      setRoom(null);
+      setMyPlayer(null);
+      setMyRoleInfo(null);
+      setGamePhase('WAITING');
+      setErrorMessage(message || '您已被房主請出房間。');
+      addSystemLog(`⛔ ${message || '您已被房主請出房間。'}`);
     });
 
     s.on('room:error', ({ message }) => {
