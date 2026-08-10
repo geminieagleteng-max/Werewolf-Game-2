@@ -306,7 +306,7 @@ export class GameHostController {
       aliveSeers.filter((s) => s.isBot).forEach((bot) => {
         this.scheduleBotAction(3000, () => {
           const act = getBotNightAction(bot, this.room.game);
-          if (act) this.handleSeerCheck(bot.id, act.targetId);
+          if (act) this.handleSeerCheck(bot.id, act.targetIds || act.targetId);
         });
       });
 
@@ -652,14 +652,17 @@ export class GameHostController {
     });
   }
 
-  // 預言家查驗
-  handleSeerCheck(playerId, targetId) {
+  // 預言家查驗 (每晚可查驗最多 2 位玩家身分)
+  handleSeerCheck(playerId, targetIds) {
     if (!this.room?.game) return;
-    const res = this.room.game.handleSeerCheck(playerId, targetId);
+    const res = this.room.game.handleSeerCheck(playerId, targetIds);
     if (res.success) {
-      this.adapter.sendTo(playerId, SOCKET_EVENTS.ACTION.SEER_RESULT, res.result);
+      this.adapter.sendTo(playerId, SOCKET_EVENTS.ACTION.SEER_RESULT, res.results);
+      const msg = res.results
+        .map((r) => `【#${r.seatNumber} ${r.targetName}：${r.factionName}】`)
+        .join('、');
       this.adapter.sendTo(playerId, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `🔮 查驗結果：【${res.result.seatNumber}號 ${res.result.targetName}】身分為 ${res.result.factionName}`,
+        message: `🔮 水晶球查驗結果：${msg}`,
       });
     }
   }

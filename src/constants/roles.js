@@ -60,7 +60,7 @@ const ROLE_DEFINITIONS = {
     faction: FACTIONS.GOOD,
     factionName: '好人神職',
     isGod: true,
-    description: '每晚查驗一名玩家身分，得知其為好人或狼人。',
+    description: '每晚可查驗最多 2 名玩家身分，得知其為好人或狼人。',
     winCondition: '放逐所有狼人，守護村莊和平。',
     hasNightAction: true,
     actionPriority: 3,

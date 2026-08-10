@@ -171,31 +171,52 @@ class Game {
   }
 
   /**
-   * 預言家查驗
+   * 預言家查驗 (每晚可查驗最多 2 位玩家身分)
    */
-  handleSeerCheck(seerPlayerId, targetPlayerId) {
+  handleSeerCheck(seerPlayerId, targetPlayerIds) {
     const seer = this.players.find(p => p.id === seerPlayerId);
     if (!seer || seer.role !== ROLES.SEER || !seer.isAlive) {
       return { success: false, message: '非存活預言家' };
     }
 
-    const target = this.players.find(p => p.id === targetPlayerId);
-    if (!target) {
-      return { success: false, message: '查驗目標不存在' };
+    const ids = Array.isArray(targetPlayerIds)
+      ? targetPlayerIds
+      : [targetPlayerIds].filter(Boolean);
+
+    if (ids.length === 0) {
+      return { success: false, message: '請選擇至少 1 位查驗目標' };
     }
 
-    this.nightActions.seerCheckedPlayerId = targetPlayerId;
-    const isWerewolf = target.role === ROLES.WEREWOLF;
+    if (ids.length > 2) {
+      return { success: false, message: '每晚最多可查驗 2 位玩家' };
+    }
 
-    return {
-      success: true,
-      result: {
+    const targets = ids
+      .map(id => this.players.find(p => p.id === id && p.isAlive))
+      .filter(Boolean);
+
+    if (targets.length === 0) {
+      return { success: false, message: '查驗目標不存在或已出局' };
+    }
+
+    this.nightActions.seerCheckedPlayerIds = targets.map(t => t.id);
+    this.nightActions.seerCheckedPlayerId = targets[0].id;
+
+    const results = targets.map(target => {
+      const isWerewolf = target.role === ROLES.WEREWOLF;
+      return {
         targetId: target.id,
         targetName: target.name,
         seatNumber: target.seatNumber,
         isWerewolf,
         factionName: isWerewolf ? '狼人陣營 🐺' : '好人陣營 🛡️',
-      },
+      };
+    });
+
+    return {
+      success: true,
+      result: results.length === 1 ? results[0] : results,
+      results,
     };
   }
 

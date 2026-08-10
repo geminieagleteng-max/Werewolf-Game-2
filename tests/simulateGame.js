@@ -93,10 +93,10 @@ async function runSimulation() {
     werewolves[0].socket.emit('action:werewolf_select', { targetId: villager.id });
   }
 
-  // 預言家查驗
-  if (seer && werewolves.length > 0) {
-    console.log(`[TEST] 🔮 預言家 ${seer.name} 查驗目標：${werewolves[0].name}`);
-    seer.socket.emit('action:seer_check', { targetId: werewolves[0].id });
+  // 預言家雙重查驗
+  if (seer && werewolves.length > 0 && villager) {
+    console.log(`[TEST] 🔮 預言家 ${seer.name} 發動雙重查驗：【${werewolves[0].name}】與【${villager.name}】`);
+    seer.socket.emit('action:seer_check', { targetIds: [werewolves[0].id, villager.id] });
   }
 
   // 6. 測試白天跳過發言投票事件

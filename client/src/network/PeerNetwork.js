@@ -301,7 +301,7 @@ export class PeerNetwork {
         this.hostController.handleWerewolfSelect(senderId, payload.targetId);
         break;
       case SOCKET_EVENTS.ACTION.SEER_CHECK:
-        this.hostController.handleSeerCheck(senderId, payload.targetId);
+        this.hostController.handleSeerCheck(senderId, payload.targetIds || payload.targetId);
         break;
       case SOCKET_EVENTS.ACTION.WITCH_ACTION:
         this.hostController.handleWitchAction(senderId, payload);

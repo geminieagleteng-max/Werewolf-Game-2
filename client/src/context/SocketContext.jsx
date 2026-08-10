@@ -366,11 +366,13 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
-  const checkSeerTarget = (targetId) => {
+  const checkSeerTarget = (targetIds) => {
+    const ids = Array.isArray(targetIds) ? targetIds : [targetIds].filter(Boolean);
+    const payload = { targetIds: ids, targetId: ids[0] };
     if (networkMode === 'P2P') {
-      peerNetwork.emit(SOCKET_EVENTS.ACTION.SEER_CHECK, { targetId });
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.SEER_CHECK, payload);
     } else {
-      socket?.emit('action:seer_check', { targetId });
+      socket?.emit('action:seer_check', payload);
     }
   };
 
