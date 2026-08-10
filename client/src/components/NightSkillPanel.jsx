@@ -19,6 +19,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     seerCheckResult,
     witchNightInfo,
     werewolfTeammates,
+    werewolfTeamData,
   } = useSocket();
 
   const [selectedTargetId, setSelectedTargetId] = useState(null);
@@ -276,8 +277,12 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     );
   }
 
-  // 4. 狼人行動面板
+  // 4. 狼人行動面板 (支援狼隊全員即時選票互看與集火共識)
   if (gamePhase === 'NIGHT_WEREWOLF' && role === 'WEREWOLF') {
+    const wolfVotes = werewolfTeamData?.votes || [];
+    const consensusTargetId = werewolfTeamData?.consensusTargetId || selectedTargetId;
+    const consensusPlayer = consensusTargetId ? room?.players.find((p) => p.id === consensusTargetId) : null;
+
     return (
       <div className="bg-red-950/30 border border-red-800/60 rounded-2xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
@@ -285,7 +290,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
             <span className="text-2xl">🐺</span>
             <div>
               <h4 className="text-base font-bold text-red-300">狼人請睜眼</h4>
-              <p className="text-xs text-red-300/70">請與狼隊友協商並點擊今晚暗殺目標</p>
+              <p className="text-xs text-red-300/70">即時同步狼隊友目標，點擊玩家進行暗殺集火</p>
             </div>
           </div>
           <button
@@ -296,31 +301,47 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
           </button>
         </div>
 
-        {/* 狼隊成員現況 */}
+        {/* 狼隊成員現況與即時選人動態 */}
         {werewolfTeammates && werewolfTeammates.length > 0 && (
-          <div className="p-3 bg-red-950/70 border border-red-800/80 rounded-xl space-y-1.5">
-            <div className="text-xs font-bold text-red-300 flex items-center gap-1.5">
-              <span>🐺</span> 狼隊同伴現況 ({werewolfTeammates.length} 狼)：
+          <div className="p-3.5 bg-red-950/80 border border-red-800/90 rounded-2xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-red-300 flex items-center gap-1.5">
+                <span>🐺</span> 狼隊成員即時選擇動態 ({werewolfTeammates.length} 狼)：
+              </span>
+              <span className="text-[10px] text-red-400 font-mono">即時同步中</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {werewolfTeammates.map((w) => {
                 const isMe = w.id === myPlayer.id;
+                const vote = wolfVotes.find((v) => v.voterId === w.id);
+                const targetP = vote?.targetId ? room?.players.find((p) => p.id === vote.targetId) : null;
+
                 return (
-                  <span
+                  <div
                     key={w.id}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border ${
+                    className={`p-2 rounded-xl text-xs flex items-center justify-between border ${
                       isMe
-                        ? 'bg-red-900/80 border-red-500 text-white shadow-sm ring-1 ring-red-400'
-                        : 'bg-zinc-950 border-zinc-700 text-zinc-200'
+                        ? 'bg-red-900/60 border-red-500 text-white font-semibold ring-1 ring-red-400'
+                        : 'bg-zinc-950/90 border-zinc-800 text-zinc-200'
                     }`}
                   >
-                    <span className="font-mono text-red-400 font-bold">#{w.seatNumber}</span>
-                    <span>{w.name}</span>
-                    {isMe && <span className="text-[10px] text-amber-300">(您)</span>}
-                    <span className="text-[10px] text-zinc-400">
-                      {w.isAlive ? '🟢' : '⚰️'}
-                    </span>
-                  </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-red-400 font-bold">#{w.seatNumber}</span>
+                      <span className="truncate max-w-[70px]">{w.name}</span>
+                      {isMe && <span className="text-[10px] text-amber-300">(您)</span>}
+                    </div>
+
+                    <div className="text-[11px] text-right">
+                      {targetP ? (
+                        <span className="px-1.5 py-0.5 bg-red-950 border border-red-700 text-red-300 rounded font-medium">
+                          🎯 鎖定 #{targetP.seatNumber} {targetP.name}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 italic">⏳ 尚未選擇</span>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -331,13 +352,17 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
         <div className="p-3 bg-red-950/50 border border-red-900/50 rounded-xl text-xs text-red-200 leading-relaxed flex items-start gap-2">
           <span>💡</span>
           <div>
-            <b>暗殺策略：</b>優先鎖定發言強勢或疑似神職（女巫、守衛、預言家）的玩家；亦可考慮自刀騙藥策略。
+            <b>暗殺協商：</b>點擊目標即可向所有狼隊友即時同步您的刀口。狼隊達成共識後將直接以此目標發動暗殺！
           </div>
         </div>
 
+        {/* 目標選擇按鈕網格 */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {alivePlayers.map((p) => {
-            const isSelected = selectedTargetId === p.id;
+            const isMyChoice = selectedTargetId === p.id;
+            const votersOnThisPlayer = wolfVotes.filter((v) => v.targetId === p.id);
+            const isConsensusTarget = consensusTargetId === p.id;
+
             return (
               <button
                 key={p.id}
@@ -345,26 +370,54 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
                   setSelectedTargetId(p.id);
                   selectWerewolfTarget(p.id);
                 }}
-                className={`p-3 rounded-xl border text-xs font-medium transition-all ${
-                  isSelected
-                    ? 'bg-red-600 border-red-400 text-white shadow-sm font-bold'
+                className={`p-3 rounded-xl border text-xs font-medium transition-all relative flex flex-col items-center gap-1 cursor-pointer ${
+                  isConsensusTarget
+                    ? 'bg-red-600 border-red-400 text-white shadow-lg shadow-red-950 font-bold ring-2 ring-red-400 animate-pulse'
+                    : isMyChoice
+                    ? 'bg-red-800 border-red-500 text-white font-bold'
+                    : votersOnThisPlayer.length > 0
+                    ? 'bg-red-950/60 border-red-700 text-red-200'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-red-500/50'
-                } cursor-pointer`}
+                }`}
               >
-                #{p.seatNumber} {p.name}
+                <div className="flex items-center gap-1">
+                  <span>#{p.seatNumber}</span>
+                  <span className="truncate max-w-[80px]">{p.name}</span>
+                </div>
+
+                {/* 狼隊友投票標籤 */}
+                {votersOnThisPlayer.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-center gap-1 mt-0.5">
+                    {votersOnThisPlayer.map((v) => {
+                      const voter = room?.players.find((w) => w.id === v.voterId);
+                      return (
+                        <span
+                          key={v.voterId}
+                          className="px-1.5 py-0.2 rounded text-[9px] bg-red-950 border border-red-500 text-red-200 font-mono"
+                        >
+                          🐺 #{voter?.seatNumber || ''}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
 
-        <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-400">
-          已選擇暗殺目標：
-          <span className="font-semibold text-red-400 ml-1">
-            {selectedTargetId
-              ? `#${room?.players.find((p) => p.id === selectedTargetId)?.seatNumber} ${
-                  room?.players.find((p) => p.id === selectedTargetId)?.name
-                }`
-              : '尚未鎖定'}
+        {/* 狼隊共識結算狀態 */}
+        <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs flex items-center justify-between">
+          <span className="text-zinc-400">狼隊當前集火刀口：</span>
+          <span className="font-bold text-red-400 text-sm">
+            {consensusPlayer ? (
+              <span className="flex items-center gap-1.5">
+                <span>🎯 #{consensusPlayer.seatNumber} {consensusPlayer.name}</span>
+                <span className="text-xs text-emerald-400 font-normal">（已鎖定）</span>
+              </span>
+            ) : (
+              <span className="text-zinc-500 font-normal italic">尚未統一目標</span>
+            )}
           </span>
         </div>
       </div>

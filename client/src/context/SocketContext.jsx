@@ -41,8 +41,9 @@ export const SocketProvider = ({ children }) => {
   const [speakingPlayerIds, setSpeakingPlayerIds] = useState([]);
   const [isMicSettingsOpen, setIsMicSettingsOpen] = useState(false);
 
-  // 狼人隊友清單 (僅狼人身分持有)
+  // 狼人隊友清單與即時暗殺投票同步 (僅狼人身分持有)
   const [werewolfTeammates, setWerewolfTeammates] = useState([]);
+  const [werewolfTeamData, setWerewolfTeamData] = useState({ votes: [], consensusTargetId: null });
 
   const addSystemLog = useCallback((msg) => {
     setSystemLogs((prev) => [
@@ -109,6 +110,10 @@ export const SocketProvider = ({ children }) => {
       setSkipDiscussionData(data);
     });
 
+    const unsubWolfTeamSync = peerNetwork.on(SOCKET_EVENTS.ACTION.WEREWOLF_TEAM_SYNC, (data) => {
+      setWerewolfTeamData(data);
+    });
+
     const unsubSpeaking = peerNetwork.on(SOCKET_EVENTS.ACTION.SPEAKING_STATE, ({ playerId, isSpeaking: spk }) => {
       setSpeakingPlayerIds((prev) =>
         spk ? Array.from(new Set([...prev, playerId])) : prev.filter((id) => id !== playerId)
@@ -134,6 +139,7 @@ export const SocketProvider = ({ children }) => {
       unsubSeer();
       unsubWitch();
       unsubSkipDiscussion();
+      unsubWolfTeamSync();
       unsubSpeaking();
       unsubGameOver();
       unsubError();
@@ -214,6 +220,10 @@ export const SocketProvider = ({ children }) => {
 
     s.on('action:skip_discussion_update', (data) => {
       setSkipDiscussionData(data);
+    });
+
+    s.on('action:werewolf_team_sync', (data) => {
+      setWerewolfTeamData(data);
     });
 
     s.on('action:speaking_state', ({ playerId, isSpeaking: spk }) => {
@@ -500,6 +510,7 @@ export const SocketProvider = ({ children }) => {
     setGameOverData(null);
     setMyRoleInfo(null);
     setWerewolfTeammates([]);
+    setWerewolfTeamData({ votes: [], consensusTargetId: null });
     setSkipDiscussionData({ skipVoters: [], aliveCount: 0, neededVotes: 0, hasPassed: false });
   };
 
@@ -520,6 +531,7 @@ export const SocketProvider = ({ children }) => {
         myPlayer,
         myRoleInfo,
         werewolfTeammates: currentWerewolfTeammates,
+        werewolfTeamData,
         gamePhase,
         gameRound,
         phaseDuration,

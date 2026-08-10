@@ -274,8 +274,19 @@ export class GameHostController {
     this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '🐺 狼人請睜眼，商議今晚擊殺目標...' });
 
     const wolves = this.room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
+    // 初始化推送當前狼隊選票
+    wolves.forEach((w) => {
+      this.adapter.sendTo(w.id, SOCKET_EVENTS.ACTION.WEREWOLF_TEAM_SYNC, {
+        votes: Array.from(this.room.game.nightActions.werewolfVotes.entries()).map(([wId, tId]) => ({
+          voterId: wId,
+          targetId: tId,
+        })),
+        consensusTargetId: this.room.game.nightActions.werewolfFinalTargetId,
+      });
+    });
+
     wolves.filter((w) => w.isBot).forEach((bot, idx) => {
-      this.scheduleBotAction(3000 + idx * 1500, () => {
+      this.scheduleBotAction(2000 + idx * 1500, () => {
         const act = getBotNightAction(bot, this.room.game);
         if (act) this.handleWerewolfSelect(bot.id, act.targetId);
       });
