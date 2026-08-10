@@ -44,5 +44,7 @@ export const SOCKET_EVENTS = {
     CAST_VOTE: 'action:cast_vote',
     HUNTER_SHOOT: 'action:hunter_shoot',
     HUNTER_STATUS: 'action:hunter_status',
+    VOTE_SKIP_DISCUSSION: 'action:vote_skip_discussion',
+    SKIP_DISCUSSION_UPDATE: 'action:skip_discussion_update',
   },
 };

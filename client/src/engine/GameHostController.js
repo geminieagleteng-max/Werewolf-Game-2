@@ -20,6 +20,7 @@ export class GameHostController {
     this.adapter = broadcastAdapter;
     this.room = null;
     this.botTimers = [];
+    this.discussionSkipVotes = new Set();
   }
 
   createRoom({ roomId, roomName, maxPlayers, roleConfig, playerName, hostId }) {
@@ -149,6 +150,7 @@ export class GameHostController {
     if (!this.room) return;
     this.clearBotTimers();
     this.room.clearTimer();
+    this.discussionSkipVotes = new Set();
     this.room.game = null;
     this.room.players.forEach((p) => {
       p.resetGameState();
@@ -396,17 +398,38 @@ export class GameHostController {
   }
 
   startDayDiscussion() {
+    this.discussionSkipVotes = new Set();
+    const alivePlayers = Array.from(this.room.players.values()).filter((p) => p.isAlive);
+    const aliveCount = alivePlayers.length;
+    const neededVotes = Math.max(1, Math.ceil(aliveCount * (2 / 3)));
+
     this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-      message: '💬 進入白天發言階段，請玩家自由陳述線索與觀點...',
+      message: `💬 進入白天發言階段，請玩家自由發言（超過 2/3 存活玩家同意即可跳過討論，需 ${neededVotes} 票）...`,
     });
 
-    // AI 機器人發言模擬
+    this.adapter.broadcast(SOCKET_EVENTS.ACTION.SKIP_DISCUSSION_UPDATE, {
+      skipVoters: [],
+      aliveCount,
+      neededVotes,
+      hasPassed: false,
+    });
+
+    // AI 機器人發言模擬與評估跳過
     const aliveBots = this.room.game.players.filter((p) => p.isAlive && p.isBot && !p.isSilenced);
     aliveBots.forEach((bot, idx) => {
       this.scheduleBotAction(6000 + idx * 8000, () => {
         if (this.room?.game?.phase === GAME_PHASES.DAY_DISCUSSION && bot.isAlive && !bot.isSilenced) {
           const speech = generateBotSpeech(bot);
           this.handleSendChat(bot.id, speech);
+
+          // 機器人在說完話後有一定機率主動同意跳過發言
+          this.scheduleBotAction(3000, () => {
+            if (this.room?.game?.phase === GAME_PHASES.DAY_DISCUSSION && bot.isAlive) {
+              if (Math.random() > 0.4 || this.discussionSkipVotes.size > 0) {
+                this.handleVoteSkipDiscussion(bot.id, true);
+              }
+            }
+          });
         }
       });
     });
@@ -414,6 +437,51 @@ export class GameHostController {
     this.startPhase(GAME_PHASES.DAY_DISCUSSION, PHASE_DURATIONS[GAME_PHASES.DAY_DISCUSSION], () => {
       this.startDayVoting();
     });
+  }
+
+  handleVoteSkipDiscussion(playerId, skip) {
+    if (!this.room?.game || this.room.game.phase !== GAME_PHASES.DAY_DISCUSSION) return;
+    const player = this.room.players.get(playerId);
+    if (!player || !player.isAlive) return;
+
+    if (skip === undefined) {
+      if (this.discussionSkipVotes.has(playerId)) {
+        this.discussionSkipVotes.delete(playerId);
+      } else {
+        this.discussionSkipVotes.add(playerId);
+      }
+    } else if (skip) {
+      this.discussionSkipVotes.add(playerId);
+    } else {
+      this.discussionSkipVotes.delete(playerId);
+    }
+
+    const alivePlayers = Array.from(this.room.players.values()).filter((p) => p.isAlive);
+    const aliveCount = alivePlayers.length;
+    const neededVotes = Math.max(1, Math.ceil(aliveCount * (2 / 3)));
+    const skipVoters = Array.from(this.discussionSkipVotes);
+    const hasPassed = skipVoters.length >= neededVotes;
+
+    this.adapter.broadcast(SOCKET_EVENTS.ACTION.SKIP_DISCUSSION_UPDATE, {
+      skipVoters,
+      aliveCount,
+      neededVotes,
+      hasPassed,
+    });
+
+    if (hasPassed) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `⏩ 投票通過！已達 2/3 存活玩家同意跳過發言（${skipVoters.length}/${neededVotes} 票），立即進入白天放逐投票！`,
+      });
+      this.clearBotTimers();
+      this.room.clearTimer();
+      this.startDayVoting();
+    } else {
+      const isVotedNow = this.discussionSkipVotes.has(playerId);
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `⏩ 玩家【#${player.seatNumber} ${player.name}】${isVotedNow ? '投票同意跳過發言' : '取消了跳過發言'}（目前 ${skipVoters.length}/${neededVotes} 票，達 2/3 即跳過）`,
+      });
+    }
   }
 
   startDayVoting() {

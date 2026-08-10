@@ -54,12 +54,28 @@ const SOCKET_EVENTS = {
     WITCH_ACTION: 'action:witch_action',             // Client -> Server: 使用解藥/毒藥/跳過
     WITCH_NIGHT_INFO: 'action:witch_night_info',     // Server -> Witch: 私密通知今晚誰中刀
 
+    // 騎士 (Knight)
+    KNIGHT_DUEL: 'action:knight_duel',
+
+    // 禁言長老 (Silencer)
+    SILENCER_SILENCE: 'action:silencer_silence',
+
+    // 攝夢人 (Dreamcatcher)
+    DREAMCATCHER_DREAM: 'action:dreamcatcher_dream',
+
+    // 邱比特 (Cupid)
+    CUPID_LINK: 'action:cupid_link',
+
     // 白天發言 (Speech / Chat)
     SEND_CHAT: 'action:send_chat',                   // Client -> Server: 發送聊天/發言訊息
     RECEIVE_CHAT: 'action:receive_chat',             // Server -> Client: 轉發聊天訊息
 
     // 白天投票 (Voting)
     CAST_VOTE: 'action:cast_vote',                   // Client -> Server: 投出放逐票 (或棄票)
+
+    // 白天討論跳過投票 (Skip Discussion)
+    VOTE_SKIP_DISCUSSION: 'action:vote_skip_discussion', // Client -> Server: 投票同意/取消跳過白天發言
+    SKIP_DISCUSSION_UPDATE: 'action:skip_discussion_update', // Server -> Client: 廣播跳過發言投票進度
 
     // 獵人 (Hunter)
     HUNTER_SHOOT: 'action:hunter_shoot',             // Client -> Server: 獵人開槍選擇目標

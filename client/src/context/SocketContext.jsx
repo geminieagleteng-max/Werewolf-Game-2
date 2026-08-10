@@ -25,6 +25,12 @@ export const SocketProvider = ({ children }) => {
   const [witchNightInfo, setWitchNightInfo] = useState(null);
   const [gameOverData, setGameOverData] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [skipDiscussionData, setSkipDiscussionData] = useState({
+    skipVoters: [],
+    aliveCount: 0,
+    neededVotes: 0,
+    hasPassed: false,
+  });
 
   const addSystemLog = useCallback((msg) => {
     setSystemLogs((prev) => [
@@ -86,6 +92,10 @@ export const SocketProvider = ({ children }) => {
       setWitchNightInfo(info);
     });
 
+    const unsubSkipDiscussion = peerNetwork.on(SOCKET_EVENTS.ACTION.SKIP_DISCUSSION_UPDATE, (data) => {
+      setSkipDiscussionData(data);
+    });
+
     const unsubGameOver = peerNetwork.on(SOCKET_EVENTS.GAME.OVER, (data) => {
       setGameOverData(data);
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
@@ -104,6 +114,7 @@ export const SocketProvider = ({ children }) => {
       unsubChat();
       unsubSeer();
       unsubWitch();
+      unsubSkipDiscussion();
       unsubGameOver();
       unsubError();
     };
@@ -178,6 +189,10 @@ export const SocketProvider = ({ children }) => {
 
     s.on('action:witch_night_info', (info) => {
       setWitchNightInfo(info);
+    });
+
+    s.on('action:skip_discussion_update', (data) => {
+      setSkipDiscussionData(data);
     });
 
     s.on('game:over', (data) => {
@@ -386,6 +401,14 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  const voteSkipDiscussion = (skip) => {
+    if (networkMode === 'P2P') {
+      peerNetwork.emit(SOCKET_EVENTS.ACTION.VOTE_SKIP_DISCUSSION, { skip });
+    } else {
+      socket?.emit('action:vote_skip_discussion', { skip });
+    }
+  };
+
   const restartGame = () => {
     if (networkMode === 'P2P') {
       peerNetwork.emit(SOCKET_EVENTS.GAME.RESTART);
@@ -394,6 +417,7 @@ export const SocketProvider = ({ children }) => {
     }
     setGameOverData(null);
     setMyRoleInfo(null);
+    setSkipDiscussionData({ skipVoters: [], aliveCount: 0, neededVotes: 0, hasPassed: false });
   };
 
   return (
@@ -418,6 +442,8 @@ export const SocketProvider = ({ children }) => {
         gameOverData,
         errorMessage,
         setErrorMessage,
+        skipDiscussionData,
+        voteSkipDiscussion,
         createRoom,
         joinRoom,
         addBot,

@@ -280,6 +280,9 @@ export class PeerNetwork {
       case SOCKET_EVENTS.ACTION.HUNTER_SHOOT:
         this.hostController.handleHunterShoot(senderId, payload.targetId);
         break;
+      case SOCKET_EVENTS.ACTION.VOTE_SKIP_DISCUSSION:
+        this.hostController.handleVoteSkipDiscussion(senderId, payload.skip);
+        break;
       default:
         break;
     }

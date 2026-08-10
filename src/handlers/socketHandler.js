@@ -297,6 +297,55 @@ function setupSocketHandlers(io) {
       });
     });
 
+    // 白天跳過發言投票
+    socket.on(SOCKET_EVENTS.ACTION.VOTE_SKIP_DISCUSSION, ({ skip } = {}) => {
+      const { room, player } = roomManager.findPlayerBySocketId(socket.id);
+      if (!room || !room.game || room.game.phase !== GAME_PHASES.DAY_DISCUSSION) return;
+      if (!player || !player.isAlive) return;
+
+      if (!room.game.discussionSkipVotes) {
+        room.game.discussionSkipVotes = new Set();
+      }
+
+      if (skip === undefined) {
+        if (room.game.discussionSkipVotes.has(player.id)) {
+          room.game.discussionSkipVotes.delete(player.id);
+        } else {
+          room.game.discussionSkipVotes.add(player.id);
+        }
+      } else if (skip) {
+        room.game.discussionSkipVotes.add(player.id);
+      } else {
+        room.game.discussionSkipVotes.delete(player.id);
+      }
+
+      const alivePlayers = room.game.players.filter((p) => p.isAlive);
+      const aliveCount = alivePlayers.length;
+      const neededVotes = Math.max(1, Math.ceil(aliveCount * (2 / 3)));
+      const skipVoters = Array.from(room.game.discussionSkipVotes);
+      const hasPassed = skipVoters.length >= neededVotes;
+
+      io.to(room.id).emit(SOCKET_EVENTS.ACTION.SKIP_DISCUSSION_UPDATE, {
+        skipVoters,
+        aliveCount,
+        neededVotes,
+        hasPassed,
+      });
+
+      if (hasPassed) {
+        io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+          message: `⏩ 投票通過！已達 2/3 存活玩家同意跳過發言（${skipVoters.length}/${neededVotes} 票），立即進入白天放逐投票！`,
+        });
+        room.clearTimer();
+        startDayVotingFlow(io, room);
+      } else {
+        const isVotedNow = room.game.discussionSkipVotes.has(player.id);
+        io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+          message: `⏩ 玩家【#${player.seatNumber} ${player.name}】${isVotedNow ? '投票同意跳過發言' : '取消了跳過發言'}（目前 ${skipVoters.length}/${neededVotes} 票，達 2/3 即跳過）`,
+        });
+      }
+    });
+
     // 獵人開槍技能
     socket.on(SOCKET_EVENTS.ACTION.HUNTER_SHOOT, ({ targetId }) => {
       const { room, player } = roomManager.findPlayerBySocketId(socket.id);
@@ -482,21 +531,39 @@ function startDayFlow(io, room) {
 
   startPhase(io, room, GAME_PHASES.DAY_ANNOUNCE, PHASE_DURATIONS[GAME_PHASES.DAY_ANNOUNCE], () => {
     // 2. 自由討論發言階段 (60s)
+    room.game.discussionSkipVotes = new Set();
+    const alivePlayers = room.game.players.filter((p) => p.isAlive);
+    const aliveCount = alivePlayers.length;
+    const neededVotes = Math.max(1, Math.ceil(aliveCount * (2 / 3)));
+
     io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-      message: '💬 進入白天發言階段，請玩家自由或依序發言交流...',
+      message: `💬 進入白天發言階段，請玩家自由發言交流（超過 2/3 存活玩家同意即可跳過討論，需 ${neededVotes} 票）...`,
+    });
+
+    io.to(room.id).emit(SOCKET_EVENTS.ACTION.SKIP_DISCUSSION_UPDATE, {
+      skipVoters: [],
+      aliveCount,
+      neededVotes,
+      hasPassed: false,
     });
 
     startPhase(io, room, GAME_PHASES.DAY_DISCUSSION, PHASE_DURATIONS[GAME_PHASES.DAY_DISCUSSION], () => {
-      // 3. 放逐投票階段 (20s)
-      io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: '🗳️ 進入白天放逐投票階段，請存活玩家進行投票！',
-      });
-      room.game.dayVotes.clear();
-
-      startPhase(io, room, GAME_PHASES.DAY_VOTING, PHASE_DURATIONS[GAME_PHASES.DAY_VOTING], () => {
-        settleDayVoteAndProceed(io, room);
-      });
+      startDayVotingFlow(io, room);
     });
+  });
+}
+
+/**
+ * 啟動白天放逐投票階段流程
+ */
+function startDayVotingFlow(io, room) {
+  io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+    message: '🗳️ 進入白天放逐投票階段，請存活玩家進行投票！',
+  });
+  room.game.dayVotes.clear();
+
+  startPhase(io, room, GAME_PHASES.DAY_VOTING, PHASE_DURATIONS[GAME_PHASES.DAY_VOTING], () => {
+    settleDayVoteAndProceed(io, room);
   });
 }
 

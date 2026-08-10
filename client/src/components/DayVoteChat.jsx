@@ -7,6 +7,8 @@ export const DayVoteChat = () => {
     myPlayer,
     gamePhase,
     castDayVote,
+    voteSkipDiscussion,
+    skipDiscussionData,
     sendChat,
     knightDuel,
     chatMessages,
@@ -22,6 +24,13 @@ export const DayVoteChat = () => {
   const isVotingPhase = gamePhase === 'DAY_VOTING';
   const isDiscussionPhase = gamePhase === 'DAY_DISCUSSION';
   const alivePlayers = room?.players.filter((p) => p.isAlive) || [];
+
+  // 計算跳過發言門檻與進度
+  const aliveCount = skipDiscussionData?.aliveCount || alivePlayers.length;
+  const neededVotes = skipDiscussionData?.neededVotes || Math.max(1, Math.ceil(aliveCount * (2 / 3)));
+  const skipVoters = skipDiscussionData?.skipVoters || [];
+  const hasMySkipVote = myPlayer ? skipVoters.includes(myPlayer.id) : false;
+  const progressPercent = Math.min(100, Math.round((skipVoters.length / neededVotes) * 100));
 
   // 自動滾動聊天室
   useEffect(() => {
@@ -78,7 +87,70 @@ export const DayVoteChat = () => {
         </span>
       </div>
 
-      {/* 2. 騎士決鬥技能區塊 (僅在白天討論階段騎士專屬) */}
+      {/* 2. 白天發言階段：跳過發言投票組件 (超過 2/3 同意即跳過) */}
+      {isDiscussionPhase && (
+        <div className="p-3.5 bg-gradient-to-r from-sky-950/40 via-zinc-950/80 to-amber-950/30 border-b border-zinc-800/80 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">⏩</span>
+              <span className="text-xs font-bold text-zinc-200">
+                跳過討論投票
+              </span>
+              <span className="text-[10px] text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded font-mono">
+                {skipVoters.length} / {neededVotes} 票（達 2/3 即跳過）
+              </span>
+            </div>
+
+            {myPlayer?.isAlive && (
+              <button
+                type="button"
+                onClick={() => voteSkipDiscussion(!hasMySkipVote)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm flex items-center gap-1 ${
+                  hasMySkipVote
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-1 ring-emerald-400'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-amber-300 border border-amber-500/40'
+                }`}
+              >
+                <span>{hasMySkipVote ? '✅' : '⏩'}</span>
+                <span>{hasMySkipVote ? '已同意跳過 (點擊撤回)' : '投票跳過討論'}</span>
+              </button>
+            )}
+          </div>
+
+          {/* 進度條 */}
+          <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800">
+            <div
+              className={`h-full transition-all duration-300 rounded-full ${
+                progressPercent >= 100
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-400 animate-pulse'
+                  : 'bg-gradient-to-r from-amber-500 to-sky-400'
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* 已同意跳過的玩家名單徽章 */}
+          {skipVoters.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 text-[10px] text-zinc-400">
+              <span className="text-zinc-500">已同意:</span>
+              {skipVoters.map((vId) => {
+                const voter = room?.players.find((p) => p.id === vId);
+                if (!voter) return null;
+                return (
+                  <span
+                    key={vId}
+                    className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-700 text-zinc-300 rounded"
+                  >
+                    #{voter.seatNumber} {voter.name}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. 騎士決鬥技能區塊 (僅在白天討論階段騎士專屬) */}
       {isKnightCanDuel && (
         <div className="p-3.5 bg-amber-950/40 border-b border-amber-800/60">
           <div className="flex items-center justify-between mb-2">
@@ -120,7 +192,7 @@ export const DayVoteChat = () => {
         </div>
       )}
 
-      {/* 3. 投票操作區塊 (僅在投票階段顯示) */}
+      {/* 4. 投票操作區塊 (僅在投票階段顯示) */}
       {isVotingPhase && myPlayer?.isAlive && myPlayer?.canVote && (
         <div className="p-4 bg-zinc-950/80 border-b border-zinc-800">
           <h4 className="text-xs font-semibold text-zinc-300 mb-2">
@@ -167,7 +239,7 @@ export const DayVoteChat = () => {
         </div>
       )}
 
-      {/* 4. 聊天與系統公報整合流 */}
+      {/* 5. 聊天與系統公報整合流 */}
       <div ref={chatScrollRef} className="flex-1 p-4 overflow-y-auto space-y-2.5">
         {/* 系統即時廣播 */}
         {systemLogs.slice(-8).map((log) => (
@@ -204,7 +276,7 @@ export const DayVoteChat = () => {
         })}
       </div>
 
-      {/* 5. 發言輸入列 */}
+      {/* 6. 發言輸入列 */}
       <form onSubmit={handleSendChat} className="p-3 bg-zinc-950 border-t border-zinc-800 flex gap-2">
         <input
           type="text"

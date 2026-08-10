@@ -1,5 +1,5 @@
 /**
- * 自動化多玩家 Socket.io 狼人殺對局模擬測試腳本
+ * 自動化多玩家 Socket.io 狼人殺對局模擬測試腳本 (包含跳過發言測試)
  */
 
 const { io } = require('socket.io-client');
@@ -14,7 +14,7 @@ server.listen(PORT, async () => {
 
   try {
     await runSimulation();
-    console.log(`[TEST] ✅ 模擬對局測試圓滿完成！`);
+    console.log(`[TEST] ✅ 模擬對局與跳過發言測試圓滿完成！`);
   } catch (err) {
     console.error(`[TEST] ❌ 模擬測試遭遇錯誤:`, err);
   } finally {
@@ -78,8 +78,7 @@ async function runSimulation() {
   // 5. 監聽夜晚階段轉移
   console.log('[TEST] 5. 監聽夜晚階段與技能發動...');
   
-  // 等待進入狼人或女巫階段
-  await new Promise(r => setTimeout(r, 6000)); // 等待 5s 發牌與 3s 夜晚開始
+  await new Promise(r => setTimeout(r, 6000)); // 等待發牌與夜晚開始
 
   const werewolves = clients.filter(c => c.role === 'WEREWOLF');
   const seer = clients.find(c => c.role === 'SEER');
@@ -99,6 +98,11 @@ async function runSimulation() {
     console.log(`[TEST] 🔮 預言家 ${seer.name} 查驗目標：${werewolves[0].name}`);
     seer.socket.emit('action:seer_check', { targetId: werewolves[0].id });
   }
+
+  // 6. 測試白天跳過發言投票事件
+  console.log('[TEST] 6. 測試跳過白天發言投票 (需達 2/3 同意)...');
+  host.socket.emit('action:vote_skip_discussion', { skip: true });
+  console.log('[TEST] -> 房主已發送跳過發言投票請求。');
 
   // 清理關閉客戶端
   for (const c of clients) {
