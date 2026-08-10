@@ -554,19 +554,6 @@ export class Game {
       return def && def.faction === FACTIONS.GOOD;
     });
 
-    const totalConfigGods = this.roleConfig.filter((r) => {
-      const def = ROLE_DEFINITIONS[r];
-      return def && def.faction === FACTIONS.GOOD && def.isGod;
-    }).length;
-    const totalConfigVillagers = this.roleConfig.filter((r) => r === ROLES.VILLAGER).length;
-
-    const aliveGods = this.players.filter((p) => {
-      if (!p.isAlive) return false;
-      const def = ROLE_DEFINITIONS[p.role];
-      return def && def.faction === FACTIONS.GOOD && def.isGod;
-    });
-    const aliveVillagers = this.players.filter((p) => p.isAlive && p.role === ROLES.VILLAGER);
-
     // 1. 狼人全滅 -> 好人勝利
     if (aliveWerewolves.length === 0) {
       this.winner = FACTIONS.GOOD;
@@ -575,28 +562,12 @@ export class Game {
       return { isOver: true, winner: FACTIONS.GOOD, reason: this.winReason };
     }
 
-    // 2. 好人全滅 -> 狼人勝利
-    if (aliveGood.length === 0) {
+    // 2. 狼人與好人存活人數達 1:1（狼人存活數 >= 好人存活數）-> 狼人勝利
+    if (aliveWerewolves.length >= aliveGood.length) {
       this.winner = FACTIONS.WEREWOLF;
-      this.winReason = '狼人陣營獲勝！好人陣營已被全數消滅。';
+      this.winReason = `狼人陣營獲勝！狼人與好人存活人數已達 ${aliveWerewolves.length}:${aliveGood.length}（1:1 控場綁票）。`;
       this.phase = GAME_PHASES.GAME_OVER;
       return { isOver: true, winner: FACTIONS.WEREWOLF, reason: this.winReason };
-    }
-
-    // 3. 標準屠邊規則 (若同時有神職與平民配置)
-    if (totalConfigGods > 0 && totalConfigVillagers > 0) {
-      if (aliveGods.length === 0) {
-        this.winner = FACTIONS.WEREWOLF;
-        this.winReason = '狼人陣營獲勝！好人神職已被全數消滅（屠邊）。';
-        this.phase = GAME_PHASES.GAME_OVER;
-        return { isOver: true, winner: FACTIONS.WEREWOLF, reason: this.winReason };
-      }
-      if (aliveVillagers.length === 0) {
-        this.winner = FACTIONS.WEREWOLF;
-        this.winReason = '狼人陣營獲勝！好人平民已被全數消滅（屠邊）。';
-        this.phase = GAME_PHASES.GAME_OVER;
-        return { isOver: true, winner: FACTIONS.WEREWOLF, reason: this.winReason };
-      }
     }
 
     return { isOver: false, winner: null, reason: '' };

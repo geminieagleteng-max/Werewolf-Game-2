@@ -54,7 +54,7 @@ export const ROLE_DEFINITIONS = {
     difficulty: '⭐⭐⭐',
     tagline: '潛伏在好人之中，夜間商議並獵殺目標。',
     description: '夜晚與狼隊友商議擊殺一名玩家；白天隱藏身分，混淆好人視聽。',
-    winCondition: '屠邊獲勝（殺死所有神職或所有村民）或屠城獲勝（殺死所有好人）。',
+    winCondition: '存活狼人人數與好人人數達 1:1（狼人存活數 ≥ 好人存活數）即可獲勝。',
     hasNightAction: true,
     actionPriority: 2,
     tags: ['夜間暗殺', '團隊協商', '偽裝欺瞞'],

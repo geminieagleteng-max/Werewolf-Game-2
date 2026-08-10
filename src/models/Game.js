@@ -447,18 +447,15 @@ class Game {
   }
 
   /**
-   * 判定勝負條件 (勝利規則：標準屠邊與全滅)
-   * 狼人獲勝：好人陣營神職全滅 OR 平民全滅
-   * 好人獲勝：狼人陣營全滅
+   * 判定勝負條件 (勝利規則：狼人與好人存活人數達 1:1 狼勝，狼人全滅好人勝)
    */
   checkWinCondition() {
     const aliveWerewolves = this.players.filter(p => p.isAlive && p.role === ROLES.WEREWOLF);
-    const aliveGods = this.players.filter(p => {
+    const aliveGood = this.players.filter(p => {
       if (!p.isAlive) return false;
       const def = ROLE_DEFINITIONS[p.role];
-      return def && def.faction === FACTIONS.GOOD && def.isGod;
+      return def && def.faction === FACTIONS.GOOD;
     });
-    const aliveVillagers = this.players.filter(p => p.isAlive && p.role === ROLES.VILLAGER);
 
     // 1. 狼人全滅 -> 好人勝利
     if (aliveWerewolves.length === 0) {
@@ -468,17 +465,10 @@ class Game {
       return { isOver: true, winner: FACTIONS.GOOD, reason: this.winReason };
     }
 
-    // 2. 神職全滅或平民全滅 (屠邊規則) -> 狼人勝利
-    if (aliveGods.length === 0) {
+    // 2. 狼人與好人存活人數達 1:1（狼人存活數 >= 好人存活數）-> 狼人勝利
+    if (aliveWerewolves.length >= aliveGood.length) {
       this.winner = FACTIONS.WEREWOLF;
-      this.winReason = '狼人陣營獲勝！好人神職已被全數消滅（屠邊）。';
-      this.phase = GAME_PHASES.GAME_OVER;
-      return { isOver: true, winner: FACTIONS.WEREWOLF, reason: this.winReason };
-    }
-
-    if (aliveVillagers.length === 0) {
-      this.winner = FACTIONS.WEREWOLF;
-      this.winReason = '狼人陣營獲勝！好人平民已被全數消滅（屠邊）。';
+      this.winReason = `狼人陣營獲勝！狼人與好人存活人數已達 ${aliveWerewolves.length}:${aliveGood.length}（1:1 控場綁票）。`;
       this.phase = GAME_PHASES.GAME_OVER;
       return { isOver: true, winner: FACTIONS.WEREWOLF, reason: this.winReason };
     }
