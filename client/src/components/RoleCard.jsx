@@ -244,6 +244,20 @@ export const RoleCard = ({ onOpenSkillGuide }) => {
                   白天參與發言與投票放逐
                 </div>
               )}
+
+              {/* 情侶關係特別揭曉標籤 */}
+              {myPlayer?.loverId && (
+                <div className="mt-2 p-2 bg-rose-950/80 border border-rose-500 rounded-xl text-center shadow-md animate-pulse">
+                  <span className="text-[11px] text-rose-300 font-bold block mb-0.5">💘 您的生死情侶：</span>
+                  <div className="text-xs font-black text-white">
+                    {(() => {
+                      const loverPartner = room?.players?.find((p) => p.id === myPlayer.loverId);
+                      return loverPartner ? `#${loverPartner.seatNumber} ${loverPartner.name}` : '未知對象';
+                    })()}
+                  </div>
+                  <span className="text-[9px] text-rose-300/80 block mt-0.5">生死同命：一人死亡，另一人即刻殉情！</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

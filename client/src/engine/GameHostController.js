@@ -627,13 +627,24 @@ export class GameHostController {
     const res = this.room.game.handleCupidLink(playerId, target1Id, target2Id);
     if (res.success) {
       this.adapter.sendTo(playerId, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `💘 您已將【${res.p1.name}】與【${res.p2.name}】連為情侶！`,
+        message: `💘 您已將【#${res.p1.seatNumber} ${res.p1.name}】與【#${res.p2.seatNumber} ${res.p2.name}】連結為生死情侶！`,
+      });
+
+      // 私密更新與通知兩位情侶
+      this.adapter.sendTo(res.p1.id, SOCKET_EVENTS.GAME.ROLE_ASSIGNED, {
+        player: res.p1.toPrivateJSON(),
+        roleInfo: ROLE_DEFINITIONS[res.p1.role],
       });
       this.adapter.sendTo(res.p1.id, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `💘 邱比特已將您與【#${res.p2.seatNumber} ${res.p2.name}】連為生死情侶！`,
+        message: `💘 邱比特已將您與【#${res.p2.seatNumber} ${res.p2.name}】連結為生死情侶！若對方死亡，您也將殉情出局。`,
+      });
+
+      this.adapter.sendTo(res.p2.id, SOCKET_EVENTS.GAME.ROLE_ASSIGNED, {
+        player: res.p2.toPrivateJSON(),
+        roleInfo: ROLE_DEFINITIONS[res.p2.role],
       });
       this.adapter.sendTo(res.p2.id, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `💘 邱比特已將您與【#${res.p1.seatNumber} ${res.p1.name}】連為生死情侶！`,
+        message: `💘 邱比特已將您與【#${res.p1.seatNumber} ${res.p1.name}】連結為生死情侶！若對方死亡，您也將殉情出局。`,
       });
     }
   }

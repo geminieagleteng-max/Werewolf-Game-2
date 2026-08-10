@@ -98,6 +98,27 @@ class Game {
   }
 
   /**
+   * 邱比特牽線連為生死情侶
+   */
+  handleCupidLink(cupidPlayerId, target1Id, target2Id) {
+    const cupid = this.players.find(p => p.id === cupidPlayerId);
+    if (!cupid || cupid.role !== ROLES.CUPID || !cupid.isAlive) {
+      return { success: false, message: '非有效邱比特' };
+    }
+    const p1 = this.players.find(p => p.id === target1Id);
+    const p2 = this.players.find(p => p.id === target2Id);
+    if (!p1 || !p2 || p1.id === p2.id) {
+      return { success: false, message: '請選擇兩位不同的玩家連為情侶！' };
+    }
+
+    p1.loverId = p2.id;
+    p2.loverId = p1.id;
+    this.nightActions.cupidLovers = [p1.id, p2.id];
+
+    return { success: true, p1, p2 };
+  }
+
+  /**
    * 守衛選擇守護目標
    */
   handleGuardProtect(guardPlayerId, targetPlayerId) {

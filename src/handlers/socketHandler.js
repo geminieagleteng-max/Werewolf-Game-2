@@ -197,6 +197,45 @@ function setupSocketHandlers(io) {
     // 3. 夜晚行動事件 (Night Skill Actions)
     // ----------------------------------------------------
 
+    // 邱比特牽線
+    socket.on(SOCKET_EVENTS.ACTION.CUPID_LINK, ({ target1Id, target2Id }) => {
+      const { room, player } = roomManager.findPlayerBySocketId(socket.id);
+      if (!room || !room.game || room.game.phase !== GAME_PHASES.NIGHT_CUPID) return;
+
+      const result = room.game.handleCupidLink(player.id, target1Id, target2Id);
+      if (!result.success) {
+        return socket.emit(SOCKET_EVENTS.ROOM.ERROR, { message: result.message });
+      }
+
+      // 1. 回覆邱比特
+      socket.emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `💘 您已將【#${result.p1.seatNumber} ${result.p1.name}】與【#${result.p2.seatNumber} ${result.p2.name}】連為情侶！`,
+      });
+
+      // 2. 私密更新與通知兩位情侶
+      const s1 = io.sockets.sockets.get(result.p1.socketId);
+      if (s1) {
+        s1.emit(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, {
+          player: result.p1.toPrivateJSON(),
+          roleInfo: ROLE_DEFINITIONS[result.p1.role],
+        });
+        s1.emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+          message: `💘 邱比特已將您與【#${result.p2.seatNumber} ${result.p2.name}】連結為生死情侶！若對方死亡，您也將殉情出局。`,
+        });
+      }
+
+      const s2 = io.sockets.sockets.get(result.p2.socketId);
+      if (s2) {
+        s2.emit(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, {
+          player: result.p2.toPrivateJSON(),
+          roleInfo: ROLE_DEFINITIONS[result.p2.role],
+        });
+        s2.emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+          message: `💘 邱比特已將您與【#${result.p1.seatNumber} ${result.p1.name}】連結為生死情侶！若對方死亡，您也將殉情出局。`,
+        });
+      }
+    });
+
     // 守衛守護
     socket.on(SOCKET_EVENTS.ACTION.GUARD_PROTECT, ({ targetId }) => {
       const { room, player } = roomManager.findPlayerBySocketId(socket.id);
