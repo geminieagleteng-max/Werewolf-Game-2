@@ -88,6 +88,12 @@ export const SocketProvider = ({ children }) => {
       setGamePhase(phase);
       setGameRound(round);
       setPhaseDuration(duration);
+      if (phase === 'NIGHT_START' || phase === 'NIGHT_SEER') {
+        setSeerCheckResult(null);
+      }
+      if (phase === 'NIGHT_START') {
+        setWitchNightInfo(null);
+      }
     });
 
     const unsubSystemMsg = peerNetwork.on(SOCKET_EVENTS.GAME.SYSTEM_MSG, ({ message }) => {
@@ -210,6 +216,12 @@ export const SocketProvider = ({ children }) => {
       setGamePhase(phase);
       setGameRound(round);
       setPhaseDuration(duration);
+      if (phase === 'NIGHT_START' || phase === 'NIGHT_SEER') {
+        setSeerCheckResult(null);
+      }
+      if (phase === 'NIGHT_START') {
+        setWitchNightInfo(null);
+      }
     });
 
     s.on('game:system_message', ({ message }) => {

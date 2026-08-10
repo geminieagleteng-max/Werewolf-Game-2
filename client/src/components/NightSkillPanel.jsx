@@ -17,6 +17,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     dreamcatcherDream,
     silencerSilence,
     seerCheckResult,
+    setSeerCheckResult,
     witchNightInfo,
     werewolfTeammates,
     werewolfTeamData,
@@ -29,7 +30,7 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
   const [witchActionDone, setWitchActionDone] = useState(null); // 'ANTIDOTE' | 'POISON' | 'PASS' | null
   const [actionDoneMsg, setActionDoneMsg] = useState('');
 
-  // 階段切換時自動清空暫存選擇
+  // 階段切換時自動清空暫存選擇與舊夜查驗結果
   useEffect(() => {
     setSelectedTargetId(null);
     setCupidSelectedIds([]);
@@ -37,7 +38,10 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     setWitchMode(null);
     setWitchActionDone(null);
     setActionDoneMsg('');
-  }, [gamePhase]);
+    if (gamePhase === 'NIGHT_SEER' || gamePhase === 'NIGHT_START') {
+      setSeerCheckResult(null);
+    }
+  }, [gamePhase, setSeerCheckResult]);
 
   if (!myPlayer) return null;
 
