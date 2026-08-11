@@ -6,10 +6,10 @@
 const STORAGE_PROFILE_KEY = 'werewolf_user_profile_v1';
 const STORAGE_CLIENT_ID_KEY = 'werewolf_google_client_id_v1';
 
-// 預設示範 Google OAuth 2.0 Client ID (使用者可隨時於介面設定中填入自訂 Client ID)
+// 預設 Google OAuth 2.0 Client ID
 const DEFAULT_CLIENT_ID =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GOOGLE_CLIENT_ID) ||
-  '612345678901-werewolfonlineexampleclientid.apps.googleusercontent.com';
+  '667245357294-ef779qsad5tckfd46g4duhpev3qn7l2f.apps.googleusercontent.com';
 
 export class GoogleAuthManager {
   constructor() {
