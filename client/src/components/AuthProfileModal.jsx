@@ -190,8 +190,12 @@ export const AuthProfileModal = ({ isOpen, onClose }) => {
                 className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>🚀</span>
-                <span>快速體驗 Google 登入（測試虛擬身分）</span>
+                <span>快速體驗 Google 登入（測試虛擬身分，免申請設定）</span>
               </button>
+
+              <div className="p-2.5 bg-blue-950/30 border border-blue-800/40 rounded-lg text-[11px] text-zinc-400 text-left w-full leading-relaxed">
+                💡 <span className="text-blue-300 font-semibold">提示：</span>若點擊黑底 Google 按鈕出現 <span className="font-mono text-amber-300">401: invalid_client</span>，是因為尚未設定 Google Cloud 專案的 Client ID。您可以直接點擊上方藍色按鈕立即體驗，或於下方展開填入您自己的 Client ID。
+              </div>
             </div>
 
             {isLinked && (
@@ -231,13 +235,13 @@ export const AuthProfileModal = ({ isOpen, onClose }) => {
             >
               <span className="flex items-center gap-1.5">
                 <span>⚙️</span>
-                <span>Google OAuth 2.0 Client ID 設定</span>
+                <span>Google OAuth 2.0 Client ID 設定（填入您自己的 Google 專案）</span>
               </span>
               <span className="text-[10px] text-zinc-500">{showConfig ? '收起 ▲' : '展開 ▼'}</span>
             </button>
 
             {showConfig && (
-              <form onSubmit={handleSaveClientId} className="mt-3 p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-xl space-y-2.5">
+              <form onSubmit={handleSaveClientId} className="mt-3 p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-xl space-y-3">
                 <div>
                   <label className="block text-[11px] font-medium text-zinc-300 mb-1">
                     自訂 Web Client ID (來自 Google Cloud Console)
@@ -247,9 +251,17 @@ export const AuthProfileModal = ({ isOpen, onClose }) => {
                     value={clientIdInput}
                     onChange={(e) => setClientIdInput(e.target.value)}
                     placeholder="例: 123456789-xxx.apps.googleusercontent.com"
-                    className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-blue-500"
                   />
                 </div>
+
+                <div className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-[10px] text-zinc-400 space-y-1">
+                  <div className="font-bold text-zinc-300">📌 3 步驟獲取 Google Client ID：</div>
+                  <div>1. 前往 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-blue-400 underline">Google Cloud Console 憑證頁面</a> 建立專案。</div>
+                  <div>2. 點擊「建立憑證」➔「OAuth 用戶端 ID」➔ 類型選「網路應用程式」。</div>
+                  <div>3. 「已授權的 JavaScript 來源」填入本站網址，複製 Client ID 貼到上方儲存即可！</div>
+                </div>
+
                 <div className="flex items-center justify-between gap-2 pt-1">
                   <button
                     type="button"
@@ -260,7 +272,7 @@ export const AuthProfileModal = ({ isOpen, onClose }) => {
                   </button>
                   <button
                     type="submit"
-                    className="px-3 py-1 bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs rounded-lg transition-colors cursor-pointer"
                   >
                     儲存 Client ID
                   </button>
