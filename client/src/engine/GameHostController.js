@@ -567,27 +567,49 @@ export class GameHostController {
 
     this.adapter.broadcast(SOCKET_EVENTS.GAME.VOTE_TALLY, {
       voteDetails: result.voteDetails,
+      voteCounts: result.voteCounts,
+      abstainCount: result.abstainCount,
       maxVotes: result.maxVotes,
       isTie: result.isTie,
+      isAbstainDominant: result.isAbstainDominant,
       exiledPlayer: result.exiledPlayer,
       isIdiotSaved: result.isIdiotSaved,
     });
 
+    // 公開廣播每位玩家具體投給誰
+    this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+      message: '🗳️【放逐投票公開開票結果】',
+    });
+
+    result.voteDetails.forEach((v) => {
+      const targetText = v.isAbstain
+        ? '【選擇棄票 🕊️】'
+        : `➡️ 投給【#${v.targetSeat} ${v.targetName}】`;
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `• #${v.voterSeat} ${v.voterName} ${targetText}`,
+      });
+    });
+
+    // 公開最終裁決
     if (result.isTie) {
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: '⚖️ 最高得票數平票，今日無人被放逐！',
+        message: `⚖️ 裁決結果：最高得票玩家出現平票（${result.maxVotes} 票），無人票數大於其他所有選擇，今日無人被放逐！`,
+      });
+    } else if (result.isAbstainDominant) {
+      this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+        message: `🕊️ 裁決結果：最高候選人得票（${result.maxVotes} 票）未大於棄票數（${result.abstainCount} 票），今日無人被放逐！`,
       });
     } else if (result.isIdiotSaved) {
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `🤡 【${result.exiledPlayer.name}】身分為白痴，翻牌免死！但失去後續投票權。`,
+        message: `🤡 裁決結果：【#${result.exiledPlayer.seatNumber} ${result.exiledPlayer.name}】身分為白痴，翻牌免死！但失去後續投票權。`,
       });
     } else if (result.exiledPlayer) {
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: `⚰️ 投票結果：【#${result.exiledPlayer.seatNumber} ${result.exiledPlayer.name}】獲得最高票 (${result.maxVotes} 票) 被放逐出局！`,
+        message: `⚰️ 裁決結果：【#${result.exiledPlayer.seatNumber} ${result.exiledPlayer.name}】得票數 (${result.maxVotes} 票) 大於其他所有選擇，遭到放逐出局！`,
       });
     } else {
       this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
-        message: '🕊️ 全員棄票，今日無人被放逐！',
+        message: '🕊️ 裁決結果：全員棄票，今日無人被放逐！',
       });
     }
 

@@ -73,6 +73,9 @@ export const SocketProvider = ({ children }) => {
   const [werewolfTeammates, setWerewolfTeammates] = useState([]);
   const [werewolfTeamData, setWerewolfTeamData] = useState({ votes: [], consensusTargetId: null });
 
+  // 放逐投票公開開票統計資料
+  const [voteTallyData, setVoteTallyData] = useState(null);
+
   const addSystemLog = useCallback((msg) => {
     setSystemLogs((prev) => [
       ...prev,
@@ -158,6 +161,9 @@ export const SocketProvider = ({ children }) => {
       if (phase === 'NIGHT_START') {
         setWitchNightInfo(null);
       }
+      if (phase === 'DAY_VOTING') {
+        setVoteTallyData(null);
+      }
     });
 
     const unsubSystemMsg = peerNetwork.on(SOCKET_EVENTS.GAME.SYSTEM_MSG, ({ message }) => {
@@ -167,6 +173,10 @@ export const SocketProvider = ({ children }) => {
 
     const unsubChat = peerNetwork.on(SOCKET_EVENTS.ACTION.RECEIVE_CHAT, (chat) => {
       setChatMessages((prev) => [...prev, chat]);
+    });
+
+    const unsubVoteTally = peerNetwork.on(SOCKET_EVENTS.GAME.VOTE_TALLY, (data) => {
+      setVoteTallyData(data);
     });
 
     const unsubSeer = peerNetwork.on(SOCKET_EVENTS.ACTION.SEER_RESULT, (result) => {
@@ -218,6 +228,7 @@ export const SocketProvider = ({ children }) => {
       unsubPhaseChange();
       unsubSystemMsg();
       unsubChat();
+      unsubVoteTally();
       unsubSeer();
       unsubWitch();
       unsubSkipDiscussion();
@@ -294,6 +305,13 @@ export const SocketProvider = ({ children }) => {
       if (phase === 'NIGHT_START') {
         setWitchNightInfo(null);
       }
+      if (phase === 'DAY_VOTING') {
+        setVoteTallyData(null);
+      }
+    });
+
+    s.on('game:vote_tally', (data) => {
+      setVoteTallyData(data);
     });
 
     s.on('game:system_message', ({ message }) => {
@@ -704,6 +722,7 @@ export const SocketProvider = ({ children }) => {
         seerCheckResult,
         setSeerCheckResult,
         witchNightInfo,
+        voteTallyData,
         gameOverData,
         errorMessage,
         setErrorMessage,

@@ -16,16 +16,19 @@ export const DayVoteChat = () => {
     equippedTitle,
     currentUser,
     isGoogleLinked,
+    voteTallyData,
   } = useSocket();
 
   const [selectedVoteTargetId, setSelectedVoteTargetId] = useState(null);
   const [selectedDuelTargetId, setSelectedDuelTargetId] = useState(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [showTallyDetail, setShowTallyDetail] = useState(true);
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef(null);
 
   const isVotingPhase = gamePhase === 'DAY_VOTING';
   const isDiscussionPhase = gamePhase === 'DAY_DISCUSSION';
+  const isVoteResultPhase = gamePhase === 'DAY_VOTE_RESULT';
   const alivePlayers = room?.players.filter((p) => p.isAlive) || [];
 
   // 計算跳過發言門檻與進度
@@ -89,6 +92,124 @@ export const DayVoteChat = () => {
           存活玩家: <b className="text-emerald-400">{alivePlayers.length}</b> 人
         </span>
       </div>
+
+      {/* 公開投票開票看板 (Public Vote Tally Board) */}
+      {voteTallyData && (
+        <div className="p-3.5 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 border-b border-zinc-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📊</span>
+              <span className="text-xs font-bold text-white tracking-wide">
+                放逐投票公開開票明細
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                公開透明
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowTallyDetail(!showTallyDetail)}
+              className="text-[11px] text-zinc-400 hover:text-white px-2 py-0.5 bg-zinc-800/80 hover:bg-zinc-700 rounded border border-zinc-700 cursor-pointer transition-colors"
+            >
+              {showTallyDetail ? '收起明細 ▲' : '展開明細 ▼'}
+            </button>
+          </div>
+
+          {/* 裁決結果告示牌 */}
+          <div className={`p-2.5 rounded-xl border text-xs font-medium flex items-center justify-between ${
+            voteTallyData.isTie
+              ? 'bg-amber-950/40 border-amber-700/60 text-amber-200'
+              : voteTallyData.isAbstainDominant
+              ? 'bg-sky-950/40 border-sky-700/60 text-sky-200'
+              : voteTallyData.isIdiotSaved
+              ? 'bg-purple-950/40 border-purple-700/60 text-purple-200'
+              : voteTallyData.exiledPlayer
+              ? 'bg-rose-950/40 border-rose-700/60 text-rose-200'
+              : 'bg-zinc-900 border-zinc-700 text-zinc-300'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className="text-base">
+                {voteTallyData.isTie
+                  ? '⚖️'
+                  : voteTallyData.isAbstainDominant
+                  ? '🕊️'
+                  : voteTallyData.isIdiotSaved
+                  ? '🤡'
+                  : voteTallyData.exiledPlayer
+                  ? '⚰️'
+                  : '🕊️'}
+              </span>
+              <div>
+                <span className="font-bold">
+                  {voteTallyData.isTie
+                    ? `最高票平票（${voteTallyData.maxVotes} 票）· 無人票數大於其他選擇`
+                    : voteTallyData.isAbstainDominant
+                    ? `最高候選人得票（${voteTallyData.maxVotes} 票）未大於棄票數（${voteTallyData.abstainCount} 票）`
+                    : voteTallyData.isIdiotSaved
+                    ? `【#${voteTallyData.exiledPlayer.seatNumber} ${voteTallyData.exiledPlayer.name}】身分為白痴，翻牌免死！`
+                    : voteTallyData.exiledPlayer
+                    ? `【#${voteTallyData.exiledPlayer.seatNumber} ${voteTallyData.exiledPlayer.name}】獲得最高票 (${voteTallyData.maxVotes} 票) 遭到放逐！`
+                    : '全員棄票，今日無人被放逐！'}
+                </span>
+                <div className="text-[10px] opacity-80 mt-0.5">
+                  規則判定：被投者票數必須嚴格大於場上其他所有選擇方可放逐。
+                </div>
+              </div>
+            </div>
+
+            {voteTallyData.exiledPlayer && !voteTallyData.isIdiotSaved && (
+              <span className="px-2 py-0.5 bg-rose-600/80 text-white rounded text-[10px] font-bold shrink-0">
+                出局
+              </span>
+            )}
+          </div>
+
+          {/* 公開投票每位玩家投誰列表 (Expanded View) */}
+          {showTallyDetail && voteTallyData.voteDetails && (
+            <div className="space-y-2 pt-1 border-t border-zinc-800/80">
+              <div className="text-[11px] text-zinc-400 font-medium">
+                📋 各玩家公開投票走向：
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                {voteTallyData.voteDetails.map((v, idx) => {
+                  const isExiledTarget = voteTallyData.exiledPlayer && v.targetId === voteTallyData.exiledPlayer.id;
+                  return (
+                    <div
+                      key={idx}
+                      className="p-2 bg-zinc-950/70 border border-zinc-800/80 rounded-lg flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-1.5 font-medium text-zinc-200">
+                        <span className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-mono text-zinc-300">
+                          {v.voterSeat}
+                        </span>
+                        <span className="truncate max-w-[80px]">{v.voterName}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-zinc-500 text-[10px]">➡️</span>
+                        {v.isAbstain ? (
+                          <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded text-[11px] font-medium">
+                            🕊️ 棄票
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                            isExiledTarget
+                              ? 'bg-rose-950/80 text-rose-300 border-rose-700/60'
+                              : 'bg-zinc-900 text-zinc-200 border-zinc-700'
+                          }`}>
+                            #{v.targetSeat} {v.targetName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 2. 白天發言階段：跳過發言投票組件 (超過 2/3 同意即跳過) */}
       {isDiscussionPhase && (

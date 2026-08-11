@@ -631,15 +631,32 @@ function settleDayVoteAndProceed(io, room) {
   // 廣播票數明細
   io.to(room.id).emit(SOCKET_EVENTS.GAME.VOTE_TALLY, result);
 
+  // 公開廣播每位玩家具體投給誰
+  io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+    message: '🗳️【放逐投票公開開票結果】',
+  });
+
+  result.voteDetails.forEach((v) => {
+    const targetText = v.isAbstain
+      ? '【選擇棄票 🕊️】'
+      : `➡️ 投給【#${v.targetSeat} ${v.targetName}】`;
+    io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+      message: `• #${v.voterSeat} ${v.voterName} ${targetText}`,
+    });
+  });
+
+  // 公開最終裁決
   let voteMsg = '';
   if (result.isTie) {
-    voteMsg = '⚖️ 平票！無人被放逐。';
+    voteMsg = `⚖️ 裁決結果：最高得票玩家出現平票（${result.maxVotes} 票），無人票數大於其他所有選擇，今日無人被放逐！`;
+  } else if (result.isAbstainDominant) {
+    voteMsg = `🕊️ 裁決結果：最高候選人得票（${result.maxVotes} 票）未大於棄票數（${result.abstainCount} 票），今日無人被放逐！`;
   } else if (result.isIdiotSaved) {
-    voteMsg = `🤡 玩家【${result.exiledPlayer.name}】翻開身分牌【白痴】，免除被放逐，但失去後續投票權！`;
+    voteMsg = `🤡 裁決結果：【#${result.exiledPlayer.seatNumber} ${result.exiledPlayer.name}】身分為白痴，翻牌免死！但失去後續投票權。`;
   } else if (result.exiledPlayer) {
-    voteMsg = `⚰️ 投票結果：玩家【${result.exiledPlayer.seatNumber}號 ${result.exiledPlayer.name}】被票選放逐出局。`;
+    voteMsg = `⚰️ 裁決結果：【#${result.exiledPlayer.seatNumber} ${result.exiledPlayer.name}】得票數 (${result.maxVotes} 票) 大於其他所有選擇，遭到放逐出局！`;
   } else {
-    voteMsg = '⚖️ 全員棄票，無人被放逐。';
+    voteMsg = '🕊️ 裁決結果：全員棄票，今日無人被放逐！';
   }
 
   io.to(room.id).emit(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: voteMsg });

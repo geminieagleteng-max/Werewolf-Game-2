@@ -458,24 +458,42 @@ export class Game {
     };
   }
 
+  /**
+   * 結算白天投票 (規則：被投的人票數必須大於場上其他所有選擇)
+   */
   settleDayVote() {
     const voteCounts = {};
     const voteDetails = [];
+    let abstainCount = 0;
 
-    this.dayVotes.forEach((targetId, voterId) => {
-      const voter = this.players.find((p) => p.id === voterId);
-      const target = targetId ? this.players.find((p) => p.id === targetId) : null;
-      voteDetails.push({
-        voterId,
-        voterName: voter ? voter.name : '未知',
-        voterSeat: voter ? voter.seatNumber : 0,
-        targetId,
-        targetName: target ? target.name : '棄票',
-        targetSeat: target ? target.seatNumber : 0,
-      });
+    const aliveVoters = this.players.filter((p) => p.isAlive && p.canVote);
 
-      if (targetId) {
-        voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+    aliveVoters.forEach((voter) => {
+      const targetId = this.dayVotes.get(voter.id);
+      const target = targetId ? this.players.find((p) => p.id === targetId && p.isAlive) : null;
+
+      if (targetId && target) {
+        voteDetails.push({
+          voterId: voter.id,
+          voterName: voter.name,
+          voterSeat: voter.seatNumber,
+          targetId: target.id,
+          targetName: target.name,
+          targetSeat: target.seatNumber,
+          isAbstain: false,
+        });
+        voteCounts[target.id] = (voteCounts[target.id] || 0) + 1;
+      } else {
+        abstainCount++;
+        voteDetails.push({
+          voterId: voter.id,
+          voterName: voter.name,
+          voterSeat: voter.seatNumber,
+          targetId: null,
+          targetName: '棄票',
+          targetSeat: 0,
+          isAbstain: true,
+        });
       }
     });
 
@@ -493,9 +511,11 @@ export class Game {
 
     let exiledPlayer = null;
     let isTie = false;
+    let isAbstainDominant = false;
     let dayDeaths = [];
 
-    if (candidates.length === 1 && maxVotes > 0) {
+    // 核心規則：被投的人票數必須大於場上其他所有選擇（含其他玩家與棄票數）
+    if (candidates.length === 1 && maxVotes > 0 && maxVotes > abstainCount) {
       const target = this.players.find((p) => p.id === candidates[0] && p.isAlive);
       if (target) {
         if (target.role === ROLES.IDIOT && !target.isIdiotRevealed) {
@@ -516,20 +536,27 @@ export class Game {
           }
         }
       }
-    } else if (candidates.length > 1) {
-      isTie = true;
+    } else {
+      if (candidates.length > 1) {
+        isTie = true; // 平票，無人放逐
+      } else if (maxVotes > 0 && maxVotes <= abstainCount) {
+        isAbstainDominant = true; // 棄票數 >= 最高候選人得票數
+      }
     }
 
     this.lastDayDeaths = dayDeaths;
 
     return {
       voteDetails,
+      voteCounts,
+      abstainCount,
       maxVotes,
       isTie,
+      isAbstainDominant,
       exiledPlayer: exiledPlayer ? exiledPlayer.toPublicJSON() : null,
-      isIdiotSaved: exiledPlayer ? exiledPlayer.isIdiotRevealed : false,
-      hasHunterSkill: !!this.pendingHunter,
-      dayDeaths,
+      isIdiotSaved: Boolean(exiledPlayer && exiledPlayer.role === ROLES.IDIOT && exiledPlayer.isAlive),
+      hasHunterSkill: Boolean(exiledPlayer && exiledPlayer.role === ROLES.HUNTER && !exiledPlayer.isAlive && exiledPlayer.canShoot),
+      deadList: dayDeaths.map((d) => ({ player: d.player.toPublicJSON(), reason: d.reason })),
     };
   }
 

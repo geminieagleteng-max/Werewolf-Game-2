@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
-import { formatRoleConfigZh } from '../engine/roles';
+import { formatRoleConfigZh, DEFAULT_ROLE_CONFIGS } from '../engine/roles';
 
 const AVAILABLE_CUSTOM_ROLES = [
   { id: 'WEREWOLF', name: '狼人', icon: '🐺', max: 5 },
@@ -102,11 +102,12 @@ export const Lobby = () => {
     }
 
     if (boardPreset === 'CUSTOM') {
-      if (customRoles.WEREWOLF < 1) {
-        setErrorMessage('自定義板子至少需要 1 名狼人！');
+      const wolfFactionCount = (customRoles.WEREWOLF || 0) + (customRoles.HIDDEN_WOLF || 0);
+      if (wolfFactionCount < 1) {
+        setErrorMessage('自定義板子至少需要 1 名狼人陣營玩家（狼人或隱狼）！');
         return;
       }
-      const goodCount = totalCustomPlayers - customRoles.WEREWOLF;
+      const goodCount = totalCustomPlayers - wolfFactionCount;
       if (goodCount < 1) {
         setErrorMessage('自定義板子至少需要 1 名好人陣營玩家！');
         return;
@@ -130,6 +131,18 @@ export const Lobby = () => {
         roomName.trim(),
         totalCustomPlayers,
         customRoleArray,
+        currentUser?.picture,
+        currentUser?.authProvider
+      );
+      setLoading(false);
+    } else if (boardPreset.includes('_HIDDEN')) {
+      const config = DEFAULT_ROLE_CONFIGS[boardPreset] || DEFAULT_ROLE_CONFIGS[8];
+      setLoading(true);
+      await createRoom(
+        playerName.trim(),
+        roomName.trim(),
+        config.length,
+        config,
         currentUser?.picture,
         currentUser?.authProvider
       );
@@ -389,10 +402,13 @@ export const Lobby = () => {
                       <option value="6">6 人標準局 (2狼 1預 1女 1獵 1民)</option>
                       <option value="7">7 人標準局 (2狼 1預 1女 1獵 2民)</option>
                       <option value="8">8 人標準局 (3狼 1預 1女 1獵 2民)</option>
+                      <option value="8_HIDDEN">8 人暗夜隱狼局 (2狼 1隱狼 1預 1女 1獵 2民)</option>
                       <option value="9">9 人守衛局 (3狼 1預 1女 1獵 1守 2民)</option>
                       <option value="10">10 人騎士局 (3狼 1預 1女 1獵 1守 1騎 2民)</option>
+                      <option value="10_HIDDEN">10 人深水隱狼局 (2狼 1隱狼 1預 1女 1獵 1守 1騎 2民)</option>
                       <option value="12">12 人標準大局 (4狼 1預 1女 1獵 1守 1騎 3民)</option>
-                      <option value="CUSTOM">🛠️ 自定義局（自選人數與 11 種職業組成）</option>
+                      <option value="12_HIDDEN">12 人暗夜全職業局 (3狼 1隱狼 1預 1女 1獵 1守 1騎 1禁 1攝 1民)</option>
+                      <option value="CUSTOM">🛠️ 自定義局（自選人數與 12 種職業組成）</option>
                     </select>
                   </div>
 
