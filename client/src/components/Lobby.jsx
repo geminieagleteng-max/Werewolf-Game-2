@@ -4,6 +4,7 @@ import { formatRoleConfigZh } from '../engine/roles';
 
 const AVAILABLE_CUSTOM_ROLES = [
   { id: 'WEREWOLF', name: '狼人', icon: '🐺', max: 5 },
+  { id: 'HIDDEN_WOLF', name: '隱狼', icon: '🌑', max: 2 },
   { id: 'SEER', name: '預言家', icon: '🔮', max: 2 },
   { id: 'WITCH', name: '女巫', icon: '🧪', max: 2 },
   { id: 'HUNTER', name: '獵人', icon: '💥', max: 2 },
@@ -47,6 +48,7 @@ export const Lobby = () => {
   const [boardPreset, setBoardPreset] = useState('6'); // '6' | '7' | '8' | '9' | '10' | '12' | 'CUSTOM'
   const [customRoles, setCustomRoles] = useState({
     WEREWOLF: 2,
+    HIDDEN_WOLF: 0,
     SEER: 1,
     WITCH: 1,
     HUNTER: 1,

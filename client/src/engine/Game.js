@@ -1,5 +1,5 @@
-import { ROLES, FACTIONS, ROLE_DEFINITIONS } from './roles';
-import { GAME_PHASES } from './gameStates';
+import { ROLES, FACTIONS, ROLE_DEFINITIONS } from './roles.js';
+import { GAME_PHASES } from './gameStates.js';
 
 /**
  * 遊戲狀態機與裁判核心邏輯 (ES Module)
@@ -10,10 +10,10 @@ export class Game {
    * @param {Array<import('./Player').Player>} players
    * @param {Array<string>} roleConfig
    */
-  constructor(roomId, players, roleConfig) {
+  constructor(roomId, players, roleConfig = []) {
     this.roomId = roomId;
-    this.players = players;
-    this.roleConfig = [...roleConfig];
+    this.players = players || [];
+    this.roleConfig = Array.isArray(roleConfig) ? [...roleConfig] : [];
 
     this.round = 0;
     this.phase = GAME_PHASES.WAITING;
@@ -131,11 +131,23 @@ export class Game {
     return { success: true, targetPlayerId };
   }
 
+  // 檢查是否普通狼人已全滅（此時隱狼覺醒）
+  isRegularWolfTeamDead() {
+    return this.players.filter((p) => p.isAlive && p.role === ROLES.WEREWOLF).length === 0;
+  }
+
   // 4. 狼人擊殺
   handleWerewolfSelect(werewolfPlayerId, targetPlayerId) {
     const wolf = this.players.find((p) => p.id === werewolfPlayerId);
-    if (!wolf || wolf.role !== ROLES.WEREWOLF || !wolf.isAlive) {
-      return { success: false, message: '非存活狼人' };
+    if (!wolf || !wolf.isAlive) {
+      return { success: false, message: '非存活玩家' };
+    }
+
+    const isNormalWolf = wolf.role === ROLES.WEREWOLF;
+    const isAwakenedHiddenWolf = wolf.role === ROLES.HIDDEN_WOLF && this.isRegularWolfTeamDead();
+
+    if (!isNormalWolf && !isAwakenedHiddenWolf) {
+      return { success: false, message: '非存活狼人或隱狼尚未覺醒' };
     }
 
     if (targetPlayerId) {
@@ -289,7 +301,7 @@ export class Game {
     }
 
     knight.hasUsedKnightDuel = true;
-    const isWolf = target.role === ROLES.WEREWOLF;
+    const isWolf = target.role === ROLES.WEREWOLF || target.role === ROLES.HIDDEN_WOLF;
 
     let deadPlayers = [];
     if (isWolf) {
@@ -555,7 +567,9 @@ export class Game {
   }
 
   checkWinCondition() {
-    const aliveWerewolves = this.players.filter((p) => p.isAlive && p.role === ROLES.WEREWOLF);
+    const aliveWerewolves = this.players.filter(
+      (p) => p.isAlive && (p.role === ROLES.WEREWOLF || p.role === ROLES.HIDDEN_WOLF)
+    );
     const aliveGood = this.players.filter((p) => {
       if (!p.isAlive) return false;
       const def = ROLE_DEFINITIONS[p.role];

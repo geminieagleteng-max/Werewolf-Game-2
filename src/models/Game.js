@@ -137,13 +137,25 @@ class Game {
     return { success: true, targetPlayerId };
   }
 
+  // 檢查是否普通狼人已全滅（此時隱狼覺醒）
+  isRegularWolfTeamDead() {
+    return this.players.filter(p => p.isAlive && p.role === ROLES.WEREWOLF).length === 0;
+  }
+
   /**
    * 狼人選擇/投票擊殺目標
    */
   handleWerewolfSelect(werewolfPlayerId, targetPlayerId) {
     const wolf = this.players.find(p => p.id === werewolfPlayerId);
-    if (!wolf || wolf.role !== ROLES.WEREWOLF || !wolf.isAlive) {
-      return { success: false, message: '非存活狼人' };
+    if (!wolf || !wolf.isAlive) {
+      return { success: false, message: '非存活玩家' };
+    }
+
+    const isNormalWolf = wolf.role === ROLES.WEREWOLF;
+    const isAwakenedHiddenWolf = wolf.role === ROLES.HIDDEN_WOLF && this.isRegularWolfTeamDead();
+
+    if (!isNormalWolf && !isAwakenedHiddenWolf) {
+      return { success: false, message: '非存活狼人或隱狼尚未覺醒' };
     }
 
     if (targetPlayerId) {
@@ -479,7 +491,9 @@ class Game {
    * 判定勝負條件 (勝利規則：狼人與好人存活人數達 1:1 狼勝，狼人全滅好人勝)
    */
   checkWinCondition() {
-    const aliveWerewolves = this.players.filter(p => p.isAlive && p.role === ROLES.WEREWOLF);
+    const aliveWerewolves = this.players.filter(
+      (p) => p.isAlive && (p.role === ROLES.WEREWOLF || p.role === ROLES.HIDDEN_WOLF)
+    );
     const aliveGood = this.players.filter(p => {
       if (!p.isAlive) return false;
       const def = ROLE_DEFINITIONS[p.role];

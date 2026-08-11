@@ -20,6 +20,7 @@ export const ROLES = {
   SILENCER: 'SILENCER',         // 禁言長老
   DREAMCATCHER: 'DREAMCATCHER', // 攝夢人
   CUPID: 'CUPID',               // 邱比特
+  HIDDEN_WOLF: 'HIDDEN_WOLF',   // 隱狼
   VILLAGER: 'VILLAGER',         // 村民
 };
 
@@ -34,6 +35,7 @@ export const ROLE_NAMES_ZH = {
   [ROLES.SILENCER]: '禁言長老',
   [ROLES.DREAMCATCHER]: '攝夢人',
   [ROLES.CUPID]: '邱比特',
+  [ROLES.HIDDEN_WOLF]: '隱狼',
   [ROLES.VILLAGER]: '村民',
 };
 
@@ -402,6 +404,50 @@ export const ROLE_DEFINITIONS = {
     faq: [
       { q: '白痴在夜間被狼人殺死會翻牌免死嗎？', a: '不會，免死技能僅在白天被投票放逐時觸發。' },
       { q: '白痴翻牌後還能發言嗎？', a: '可以正常發言討論，只是不能再參與放逐投票。' },
+    ],
+  },
+  [ROLES.HIDDEN_WOLF]: {
+    id: ROLES.HIDDEN_WOLF,
+    name: '隱狼',
+    title: '匿跡深淵的暗夜臥底',
+    icon: '🌑',
+    faction: FACTIONS.WEREWOLF,
+    factionName: '狼人陣營',
+    isGod: false,
+    difficulty: '⭐⭐⭐⭐',
+    tagline: '偽裝成好人深水潛伏，預言家驗不出，狼隊全滅後暗夜覺醒。',
+    description: '屬於狼人陣營但與普通狼人互不相認。預言家查驗顯示為好人；當場上普通狼人全滅後，隱狼覺醒並繼承夜間暗殺能力。',
+    winCondition: '存活狼人人數與好人人數達 1:1（狼人存活數 ≥ 好人存活數）即可獲勝。',
+    hasNightAction: false,
+    actionPriority: 2,
+    tags: ['深水潛伏', '假金水', '殘局覺醒'],
+    skills: [
+      {
+        name: '匿影潛伏 (被動)',
+        icon: '🥷',
+        phase: '每晚預言家查驗階段',
+        triggerType: '被動生效',
+        effect: '預言家在夜間查驗隱狼時，系統結果一律顯示為「好人陣營 🛡️」。但若遭騎士拔劍決鬥，仍判定為狼人陣營並出局。',
+        restrictions: '與普通狼人互不相認，夜間不進入狼人夜間討論頻道。',
+      },
+      {
+        name: '末日覺醒 (被動/主動)',
+        icon: '🐺',
+        phase: '夜間狼人行動階段 (狼隊全滅時觸發)',
+        triggerType: '局勢觸發',
+        effect: '當場上所有普通狼人全部出局後，隱狼於下一夜正式覺醒，接管狼人夜間暗殺行動權。',
+        restrictions: '在普通狼人尚未全滅前，隱狼夜間無法刀人。',
+      },
+    ],
+    strategyTips: [
+      '由於預言家驗出來是好人金水，隱狼在白天可以大膽做高自身好人身分，主動接金水甚至帶隊號票。',
+      '發言時暗中引導好人走入邏輯死胡同，暗中保護狼隊友，或在關鍵時刻倒鉤賣隊友以換取絕對信任。',
+      '若普通狼人全滅，隱狼需冷靜接管夜間刀人權，精準獵殺場上剩餘的關鍵神職翻盤！',
+    ],
+    faq: [
+      { q: '預言家驗隱狼會顯示狼人嗎？', a: '不會！預言家驗隱狼一律顯示為「好人陣營 🛡️」，這是隱狼最強大的偽裝能力。' },
+      { q: '騎士決鬥隱狼會成功嗎？', a: '會！騎士決鬥隱狼時，隱狼身分判定為狼人陣營，決鬥成功，隱狼當場出局。' },
+      { q: '隱狼知道誰是狼隊友嗎？', a: '不知道！隱狼與普通狼人開局互不相認，需靠白天發言與投票自己辨識。' },
     ],
   },
   [ROLES.VILLAGER]: {

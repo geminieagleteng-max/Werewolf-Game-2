@@ -21,6 +21,7 @@ const ROLES = {
   SILENCER: 'SILENCER',         // 禁言長老
   DREAMCATCHER: 'DREAMCATCHER', // 攝夢人
   CUPID: 'CUPID',               // 邱比特
+  HIDDEN_WOLF: 'HIDDEN_WOLF',   // 隱狼
   VILLAGER: 'VILLAGER',         // 村民 (普通村民)
 };
 
@@ -155,6 +156,19 @@ const ROLE_DEFINITIONS = {
     winCondition: '放逐所有狼人，守護村莊和平。',
     hasNightAction: false,
     actionPriority: 99,
+  },
+  [ROLES.HIDDEN_WOLF]: {
+    id: ROLES.HIDDEN_WOLF,
+    name: '隱狼',
+    title: '匿跡深淵的暗夜臥底',
+    icon: '🌑',
+    faction: FACTIONS.WEREWOLF,
+    factionName: '狼人陣營',
+    isGod: false,
+    description: '屬於狼人陣營但與普通狼人互不相認。預言家查驗顯示為好人，普通狼人全滅後覺醒暗殺能力。',
+    winCondition: '存活狼人人數與好人人數達 1:1（狼人存活數 ≥ 好人存活數）即可獲勝。',
+    hasNightAction: false, // 覺醒前無常規夜間行動
+    actionPriority: 2,
   },
   [ROLES.VILLAGER]: {
     id: ROLES.VILLAGER,

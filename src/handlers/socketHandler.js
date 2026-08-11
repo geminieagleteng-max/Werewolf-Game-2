@@ -261,9 +261,13 @@ function setupSocketHandlers(io) {
         return socket.emit(SOCKET_EVENTS.ROOM.ERROR, { message: result.message });
       }
 
-      // 同步狼隊所有隊友的選票情況
-      const werewolves = room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
-      werewolves.forEach(w => {
+      // 同步狼隊所有隊友的選票情況 (含覺醒隱狼)
+      const normalWolves = room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
+      const activeWolves = normalWolves.length > 0
+        ? normalWolves
+        : room.game.getAlivePlayersByRole(ROLES.HIDDEN_WOLF);
+
+      activeWolves.forEach(w => {
         const wSocket = io.sockets.sockets.get(w.socketId);
         if (wSocket) {
           wSocket.emit(SOCKET_EVENTS.ACTION.WEREWOLF_TEAM_SYNC, {

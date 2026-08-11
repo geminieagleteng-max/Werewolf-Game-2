@@ -60,9 +60,19 @@ export function getBotNightAction(botPlayer, game) {
   }
 
   if (botPlayer.role === ROLES.WEREWOLF) {
-    const nonWolves = otherAlive.filter((p) => p.role !== ROLES.WEREWOLF);
+    const nonWolves = otherAlive.filter((p) => p.role !== ROLES.WEREWOLF && p.role !== ROLES.HIDDEN_WOLF);
     const target = nonWolves.length > 0 ? nonWolves[Math.floor(Math.random() * nonWolves.length)] : otherAlive[0];
     return { type: 'werewolf_select', targetId: target ? target.id : null };
+  }
+
+  if (botPlayer.role === ROLES.HIDDEN_WOLF) {
+    // 若普通狼人全滅，覺醒進行夜間暗殺
+    if (game.isRegularWolfTeamDead && game.isRegularWolfTeamDead()) {
+      const nonWolves = otherAlive.filter((p) => p.role !== ROLES.WEREWOLF && p.role !== ROLES.HIDDEN_WOLF);
+      const target = nonWolves.length > 0 ? nonWolves[Math.floor(Math.random() * nonWolves.length)] : otherAlive[0];
+      return { type: 'werewolf_select', targetId: target ? target.id : null };
+    }
+    return null;
   }
 
   if (botPlayer.role === ROLES.SEER) {

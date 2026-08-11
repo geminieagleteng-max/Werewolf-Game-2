@@ -72,6 +72,13 @@ const ROLE_THEMES = {
     accentText: 'text-rose-400',
     badge: 'bg-rose-950 border-rose-700 text-rose-300',
   },
+  HIDDEN_WOLF: {
+    border: 'border-purple-600',
+    glow: 'shadow-purple-950/70',
+    gradient: 'from-purple-950/80 via-zinc-900 to-black',
+    accentText: 'text-purple-300',
+    badge: 'bg-purple-950 border-purple-700 text-purple-200',
+  },
   VILLAGER: {
     border: 'border-slate-600',
     glow: 'shadow-slate-950/70',

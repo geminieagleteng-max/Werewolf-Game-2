@@ -1,4 +1,4 @@
-import { ROLES } from './roles';
+import { ROLES } from './roles.js';
 
 /**
  * 玩家資料模型 (ES Module)

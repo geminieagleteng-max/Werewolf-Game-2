@@ -433,6 +433,97 @@ export const NightSkillPanel = ({ onOpenSkillGuide }) => {
     );
   }
 
+  // 4.5 隱狼行動面板 (潛伏中提示 / 覺醒暗殺)
+  if (gamePhase === 'NIGHT_WEREWOLF' && role === 'HIDDEN_WOLF') {
+    const normalWolvesAlive = room?.players.filter((p) => p.isAlive && p.role === 'WEREWOLF').length > 0;
+
+    if (normalWolvesAlive) {
+      return (
+        <div className="bg-purple-950/40 border border-purple-800/60 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🌑</span>
+              <div>
+                <h4 className="text-base font-bold text-purple-300">隱狼匿影潛伏中</h4>
+                <p className="text-xs text-purple-300/70">您屬於狼人陣營，目前普通狼人正在黑夜中行動...</p>
+              </div>
+            </div>
+            <button
+              onClick={() => onOpenSkillGuide?.('HIDDEN_WOLF')}
+              className="text-[11px] text-purple-300 hover:text-white underline cursor-pointer"
+            >
+              📖 技能指引
+            </button>
+          </div>
+
+          <div className="p-4 bg-purple-950/80 border border-purple-800 rounded-xl text-xs text-purple-200 leading-relaxed space-y-2">
+            <div className="flex items-center gap-2 font-bold text-amber-300 text-sm">
+              <span>🥷</span>
+              <span>深水潛伏特權：</span>
+            </div>
+            <p>• <b>預言家金水</b>：預言家夜間查驗您時，顯示為「好人陣營 🛡️」。</p>
+            <p>• <b>互不相認</b>：您與普通狼人開局不互認，夜間由普通狼人負責刀人。</p>
+            <p>• <b>末日覺醒</b>：若場上所有普通狼人全部出局，您將正式覺醒接管暗殺技能！</p>
+          </div>
+        </div>
+      );
+    }
+
+    // 覺醒後的隱狼操作介面
+    const consensusTargetId = werewolfTeamData?.consensusTargetId || selectedTargetId;
+    const consensusPlayer = consensusTargetId ? room?.players.find((p) => p.id === consensusTargetId) : null;
+
+    return (
+      <div className="bg-purple-950/40 border border-red-800/80 rounded-2xl p-6 shadow-lg space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🌑🐺</span>
+            <div>
+              <h4 className="text-base font-bold text-red-300">隱狼暗夜覺醒！</h4>
+              <p className="text-xs text-red-300/80">普通狼人已全滅，您已繼承暗殺權，請選擇今晚刺殺目標</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSkillGuide?.('HIDDEN_WOLF')}
+            className="text-[11px] text-red-300 hover:text-white underline cursor-pointer"
+          >
+            📖 技能指引
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {alivePlayers.map((p) => {
+            const isSelected = selectedTargetId === p.id || consensusTargetId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setSelectedTargetId(p.id);
+                  selectWerewolfTarget(p.id);
+                }}
+                className={`p-3 rounded-xl border text-xs font-medium transition-all ${
+                  isSelected
+                    ? 'bg-red-600 border-red-400 text-white shadow-lg font-bold ring-2 ring-red-400 animate-pulse'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-red-500/50'
+                } cursor-pointer`}
+              >
+                #{p.seatNumber} {p.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs flex items-center justify-between">
+          <span className="text-zinc-400">當前鎖定刺殺目標：</span>
+          <span className="font-bold text-red-400">
+            {consensusPlayer ? `🎯 #${consensusPlayer.seatNumber} ${consensusPlayer.name}（已鎖定）` : '尚未選擇目標'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   // 5. 預言家行動面板 (每晚僅限查驗 1 位存活玩家)
   if (gamePhase === 'NIGHT_SEER' && role === 'SEER') {
     const singleResult = Array.isArray(seerCheckResult) ? seerCheckResult[0] : seerCheckResult;

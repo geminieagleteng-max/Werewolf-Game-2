@@ -93,6 +93,15 @@ const ROLE_THEMES = {
     factionBadge: 'bg-rose-900/60 text-rose-300 border-rose-500',
     factionText: '好人神職 🛡️',
   },
+  HIDDEN_WOLF: {
+    name: '隱狼',
+    icon: '🌑',
+    border: 'border-purple-600/80',
+    glow: 'shadow-purple-950/80',
+    gradient: 'from-purple-950 via-zinc-900 to-black',
+    factionBadge: 'bg-red-950 text-red-300 border-red-800',
+    factionText: '狼人陣營 🌑',
+  },
   VILLAGER: {
     name: '村民',
     icon: '👨‍🌾',

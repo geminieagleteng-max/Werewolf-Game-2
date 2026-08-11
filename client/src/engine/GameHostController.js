@@ -293,9 +293,19 @@ export class GameHostController {
   handleWerewolfTurn() {
     this.adapter.broadcast(SOCKET_EVENTS.GAME.SYSTEM_MSG, { message: '🐺 狼人請睜眼，商議今晚擊殺目標...' });
 
-    const wolves = this.room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
+    const normalWolves = this.room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
+    const isAwakened = normalWolves.length === 0;
+    const activeWolves = isAwakened
+      ? this.room.game.getAlivePlayersByRole(ROLES.HIDDEN_WOLF)
+      : normalWolves;
+
     // 初始化推送當前狼隊選票
-    wolves.forEach((w) => {
+    activeWolves.forEach((w) => {
+      if (isAwakened) {
+        this.adapter.sendTo(w.id, SOCKET_EVENTS.GAME.SYSTEM_MSG, {
+          message: '🌑 普通狼人已全滅，隱狼暗夜覺醒！請選擇今晚暗殺目標...',
+        });
+      }
       this.adapter.sendTo(w.id, SOCKET_EVENTS.ACTION.WEREWOLF_TEAM_SYNC, {
         votes: Array.from(this.room.game.nightActions.werewolfVotes.entries()).map(([wId, tId]) => ({
           voterId: wId,
@@ -305,7 +315,7 @@ export class GameHostController {
       });
     });
 
-    wolves.filter((w) => w.isBot).forEach((bot, idx) => {
+    activeWolves.filter((w) => w.isBot).forEach((bot, idx) => {
       this.scheduleBotAction(2000 + idx * 1500, () => {
         const act = getBotNightAction(bot, this.room.game);
         if (act) this.handleWerewolfSelect(bot.id, act.targetId);
@@ -674,8 +684,12 @@ export class GameHostController {
     const res = this.room.game.handleWerewolfSelect(playerId, targetId);
     if (!res.success) return;
 
-    const werewolves = this.room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
-    werewolves.forEach((w) => {
+    const normalWolves = this.room.game.getAlivePlayersByRole(ROLES.WEREWOLF);
+    const activeWolves = normalWolves.length > 0
+      ? normalWolves
+      : this.room.game.getAlivePlayersByRole(ROLES.HIDDEN_WOLF);
+
+    activeWolves.forEach((w) => {
       this.adapter.sendTo(w.id, SOCKET_EVENTS.ACTION.WEREWOLF_TEAM_SYNC, {
         votes: res.votes,
         consensusTargetId: res.consensusTargetId,
