@@ -79,6 +79,61 @@ export const ROLE_DEFINITIONS = {
       },
     ],
     strategyTips: [
+      '狼隊成員需配合默契，夜間統一刀口，避免分票導致平安夜。',
+      '發言時盡量模仿好人視角，製造假邏輯與假查驗，擾亂好人推導。',
+      '在局勢不利時，可選擇「自刀」騙女巫解藥做高身分，或「倒鉤」出賣隊友以求存活。',
+    ],
+    faq: [
+      { q: '狼人可以自刀嗎？', a: '可以，狼人夜間可以選擇自刀以騙取女巫解藥或製造混亂。' },
+      { q: '狼人全部出局後遊戲就結束了嗎？', a: '若場上有隱狼存活，隱狼將在下一夜暗夜覺醒繼承刀人權；若無隱狼則好人直接獲勝。' },
+    ],
+  },
+  [ROLES.HIDDEN_WOLF]: {
+    id: ROLES.HIDDEN_WOLF,
+    name: '隱狼',
+    title: '匿跡深淵的暗夜臥底',
+    icon: '🌑',
+    faction: FACTIONS.WEREWOLF,
+    factionName: '狼人陣營',
+    isGod: false,
+    difficulty: '⭐⭐⭐⭐',
+    tagline: '偽裝成好人深水潛伏，預言家驗不出，狼隊全滅後暗夜覺醒。',
+    description: '屬於狼人陣營但與普通狼人互不相認。預言家查驗顯示為好人；當場上普通狼人全滅後，隱狼覺醒並繼承夜間暗殺能力。',
+    winCondition: '存活狼人人數與好人人數達 1:1（狼人存活數 ≥ 好人存活數）即可獲勝。',
+    hasNightAction: false,
+    actionPriority: 2,
+    tags: ['深水潛伏', '假金水', '殘局覺醒'],
+    skills: [
+      {
+        name: '匿影潛伏 (被動)',
+        icon: '🥷',
+        phase: '每晚預言家查驗階段',
+        triggerType: '被動生效',
+        effect: '預言家在夜間查驗隱狼時，系統結果一律顯示為「好人陣營 🛡️」。但若遭騎士拔劍決鬥，仍判定為狼人陣營並出局。',
+        restrictions: '與普通狼人互不相認，夜間不進入狼人夜間討論頻道。',
+      },
+      {
+        name: '末日覺醒 (被動/主動)',
+        icon: '🐺',
+        phase: '夜間狼人行動階段 (狼隊全滅時觸發)',
+        triggerType: '局勢觸發',
+        effect: '當場上所有普通狼人全部出局後，隱狼於下一夜正式覺醒，接管狼人夜間暗殺行動權。',
+        restrictions: '在普通狼人尚未全滅前，隱狼夜間無法刀人。',
+      },
+    ],
+    strategyTips: [
+      '由於預言家驗出來是好人金水，隱狼在白天可以大膽做高自身好人身分，主動接金水甚至帶隊號票。',
+      '發言時暗中引導好人走入邏輯死胡同，暗中保護狼隊友，或在關鍵時刻倒鉤賣隊友以換取絕對信任。',
+      '若普通狼人全滅，隱狼需冷靜接管夜間刀人權，精準獵殺場上剩餘的關鍵神職翻盤！',
+    ],
+    faq: [
+      { q: '預言家驗隱狼會顯示狼人嗎？', a: '不會！預言家驗隱狼一律顯示為「好人陣營 🛡️」，這是隱狼最強大的偽裝能力。' },
+      { q: '騎士決鬥隱狼會成功嗎？', a: '會！騎士決鬥隱狼時，隱狼身分判定為狼人陣營，決鬥成功，隱狼當場出局。' },
+      { q: '隱狼知道誰是狼隊友嗎？', a: '不知道！隱狼與普通狼人開局互不相認，需靠白天發言與投票自己辨識。' },
+    ],
+  },
+  [ROLES.SEER]: {
+    strategyTips: [
       '狼隊友間可分工：一人「悍跳預言家」發假查驗帶節奏，其餘隊友在警下煽動好人。',
       '夜晚擊殺優先鎖定高威脅神職（如女巫、守衛、預言家），降低好人防禦。',
       '發言需保持心態平穩，邏輯自洽，切忌前後矛盾或過度針對單一好人。',
@@ -406,50 +461,6 @@ export const ROLE_DEFINITIONS = {
       { q: '白痴翻牌後還能發言嗎？', a: '可以正常發言討論，只是不能再參與放逐投票。' },
     ],
   },
-  [ROLES.HIDDEN_WOLF]: {
-    id: ROLES.HIDDEN_WOLF,
-    name: '隱狼',
-    title: '匿跡深淵的暗夜臥底',
-    icon: '🌑',
-    faction: FACTIONS.WEREWOLF,
-    factionName: '狼人陣營',
-    isGod: false,
-    difficulty: '⭐⭐⭐⭐',
-    tagline: '偽裝成好人深水潛伏，預言家驗不出，狼隊全滅後暗夜覺醒。',
-    description: '屬於狼人陣營但與普通狼人互不相認。預言家查驗顯示為好人；當場上普通狼人全滅後，隱狼覺醒並繼承夜間暗殺能力。',
-    winCondition: '存活狼人人數與好人人數達 1:1（狼人存活數 ≥ 好人存活數）即可獲勝。',
-    hasNightAction: false,
-    actionPriority: 2,
-    tags: ['深水潛伏', '假金水', '殘局覺醒'],
-    skills: [
-      {
-        name: '匿影潛伏 (被動)',
-        icon: '🥷',
-        phase: '每晚預言家查驗階段',
-        triggerType: '被動生效',
-        effect: '預言家在夜間查驗隱狼時，系統結果一律顯示為「好人陣營 🛡️」。但若遭騎士拔劍決鬥，仍判定為狼人陣營並出局。',
-        restrictions: '與普通狼人互不相認，夜間不進入狼人夜間討論頻道。',
-      },
-      {
-        name: '末日覺醒 (被動/主動)',
-        icon: '🐺',
-        phase: '夜間狼人行動階段 (狼隊全滅時觸發)',
-        triggerType: '局勢觸發',
-        effect: '當場上所有普通狼人全部出局後，隱狼於下一夜正式覺醒，接管狼人夜間暗殺行動權。',
-        restrictions: '在普通狼人尚未全滅前，隱狼夜間無法刀人。',
-      },
-    ],
-    strategyTips: [
-      '由於預言家驗出來是好人金水，隱狼在白天可以大膽做高自身好人身分，主動接金水甚至帶隊號票。',
-      '發言時暗中引導好人走入邏輯死胡同，暗中保護狼隊友，或在關鍵時刻倒鉤賣隊友以換取絕對信任。',
-      '若普通狼人全滅，隱狼需冷靜接管夜間刀人權，精準獵殺場上剩餘的關鍵神職翻盤！',
-    ],
-    faq: [
-      { q: '預言家驗隱狼會顯示狼人嗎？', a: '不會！預言家驗隱狼一律顯示為「好人陣營 🛡️」，這是隱狼最強大的偽裝能力。' },
-      { q: '騎士決鬥隱狼會成功嗎？', a: '會！騎士決鬥隱狼時，隱狼身分判定為狼人陣營，決鬥成功，隱狼當場出局。' },
-      { q: '隱狼知道誰是狼隊友嗎？', a: '不知道！隱狼與普通狼人開局互不相認，需靠白天發言與投票自己辨識。' },
-    ],
-  },
   [ROLES.VILLAGER]: {
     id: ROLES.VILLAGER,
     name: '村民',
@@ -502,6 +513,11 @@ export const DEFAULT_ROLE_CONFIGS = {
     ROLES.SEER, ROLES.WITCH, ROLES.HUNTER,
     ROLES.VILLAGER, ROLES.VILLAGER
   ],
+  '8_HIDDEN': [
+    ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.HIDDEN_WOLF,
+    ROLES.SEER, ROLES.WITCH, ROLES.HUNTER,
+    ROLES.VILLAGER, ROLES.VILLAGER
+  ],
   9: [
     ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF,
     ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD,
@@ -512,9 +528,19 @@ export const DEFAULT_ROLE_CONFIGS = {
     ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD, ROLES.KNIGHT,
     ROLES.VILLAGER, ROLES.VILLAGER
   ],
+  '10_HIDDEN': [
+    ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.HIDDEN_WOLF,
+    ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD, ROLES.KNIGHT,
+    ROLES.VILLAGER, ROLES.VILLAGER
+  ],
   12: [
     ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF,
     ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD, ROLES.KNIGHT,
     ROLES.VILLAGER, ROLES.VILLAGER, ROLES.VILLAGER
+  ],
+  '12_HIDDEN': [
+    ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.WEREWOLF, ROLES.HIDDEN_WOLF,
+    ROLES.SEER, ROLES.WITCH, ROLES.HUNTER, ROLES.GUARD, ROLES.KNIGHT,
+    ROLES.SILENCER, ROLES.DREAMCATCHER, ROLES.VILLAGER
   ],
 };
