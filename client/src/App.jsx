@@ -9,10 +9,13 @@ import DayVoteChat from './components/DayVoteChat';
 import RoleSkillModal from './components/RoleSkillModal';
 import RoleRevealModal from './components/RoleRevealModal';
 import MicrophoneSettingsModal from './components/MicrophoneSettingsModal';
+import AchievementToast from './components/AchievementToast';
+import AchievementsModal from './components/AchievementsModal';
 import { voiceManager } from './engine/VoiceManager';
+import { achievementManager } from './engine/AchievementManager';
 
 const GameContent = ({ onOpenSkillGuide }) => {
-  const { room, gamePhase, myPlayer, gameOverData, restartGame, speakingPlayerIds, werewolfTeammates } = useSocket();
+  const { room, gamePhase, myPlayer, gameOverData, restartGame, speakingPlayerIds, werewolfTeammates, setIsAchievementsOpen } = useSocket();
 
   // 若尚未進房或處於大廳等待狀態，顯示房間大廳
   if (!room || gamePhase === 'WAITING') {
@@ -21,6 +24,7 @@ const GameContent = ({ onOpenSkillGuide }) => {
 
   const isHost = myPlayer?.isHost;
   const isMeWolf = myPlayer?.role === 'WEREWOLF';
+  const newlyUnlocked = achievementManager.currentMatch?.newlyUnlockedThisGame || [];
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto h-[calc(100vh-65px)] flex flex-col gap-4 sm:gap-6">
@@ -92,18 +96,50 @@ const GameContent = ({ onOpenSkillGuide }) => {
 
       {/* 遊戲結束底牌揭曉 Modal */}
       {gameOverData && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-slate-900 border-2 border-amber-500 rounded-3xl p-8 max-w-2xl w-full shadow-2xl shadow-amber-950/50 text-center">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div className="bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl shadow-amber-950/50 text-center max-h-[90vh] overflow-y-auto">
             <span className="text-5xl block mb-2">🏆</span>
-            <h2 className="text-3xl font-serif font-black text-amber-400 mb-2">
+            <h2 className="text-2xl sm:text-3xl font-serif font-black text-amber-400 mb-2">
               {gameOverData.winner === 'GOOD' ? '🛡️ 好人陣營獲勝！' : '🐺 狼人陣營獲勝！'}
             </h2>
-            <p className="text-sm text-slate-300 mb-6">{gameOverData.reason}</p>
+            <p className="text-xs sm:text-sm text-slate-300 mb-5">{gameOverData.reason}</p>
+
+            {/* 本局解鎖成就高光通知 */}
+            {newlyUnlocked.length > 0 && (
+              <div className="mb-6 p-4 rounded-2xl bg-amber-950/40 border border-amber-500/60 shadow-lg text-left">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>🎉</span>
+                    <span>本局解鎖成就（共 {newlyUnlocked.length} 項）</span>
+                  </span>
+                  <button
+                    onClick={() => setIsAchievementsOpen(true)}
+                    className="text-[11px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+                  >
+                    查看成就圖鑑 →
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {newlyUnlocked.map((ach) => (
+                    <div
+                      key={ach.id}
+                      className="p-2.5 rounded-xl bg-zinc-900/90 border border-amber-500/40 flex items-center gap-2.5"
+                    >
+                      <span className="text-xl">{ach.icon || '🏆'}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white truncate">{ach.title}</div>
+                        <div className="text-[10px] text-amber-300 font-mono">+{ach.ap} AP · 【{ach.rewardTitle}】</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
               全體玩家真實身分揭曉
             </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 sm:mb-8">
               {gameOverData.allPlayers?.map((p) => (
                 <div
                   key={p.id}
@@ -120,7 +156,7 @@ const GameContent = ({ onOpenSkillGuide }) => {
             {isHost ? (
               <button
                 onClick={restartGame}
-                className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-2xl shadow-xl transition-all cursor-pointer"
+                className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-2xl shadow-xl transition-all cursor-pointer text-sm sm:text-base"
               >
                 🔄 房主重置房間 (再玩一局)
               </button>
@@ -156,7 +192,15 @@ export default function App() {
 }
 
 function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, handleOpenSkillGuide }) {
-  const { room, myPlayer, isMicSettingsOpen, setIsMicSettingsOpen } = useSocket();
+  const {
+    room,
+    myPlayer,
+    isMicSettingsOpen,
+    setIsMicSettingsOpen,
+    isAchievementsOpen,
+    setIsAchievementsOpen,
+    trackRoleManualView,
+  } = useSocket();
 
   // 監聽全局使用者點擊與操作，瞬時解鎖瀏覽器 WebRTC 語音自動播放限制
   React.useEffect(() => {
@@ -175,6 +219,7 @@ function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, ha
 
   const handleOpenGuideWithFallback = (roleKey) => {
     const targetRole = roleKey || myPlayer?.role || 'VILLAGER';
+    trackRoleManualView?.(targetRole);
     handleOpenSkillGuide(targetRole);
   };
 
@@ -185,6 +230,16 @@ function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, ha
       <main className="flex-1 overflow-hidden">
         <GameContent onOpenSkillGuide={handleOpenGuideWithFallback} />
       </main>
+
+      {/* 即時成就解鎖浮動通知 Toast */}
+      <AchievementToast />
+
+      {/* 榮譽成就與稱號衣櫥 Modal */}
+      <AchievementsModal
+        isOpen={isAchievementsOpen}
+        onClose={() => setIsAchievementsOpen(false)}
+        playerName={myPlayer?.name || localStorage.getItem('werewolf_player_name') || '玩家'}
+      />
 
       {/* 抽牌身分揭曉 Spotlight Modal */}
       <RoleRevealModal onOpenFullManual={handleOpenGuideWithFallback} />
@@ -205,3 +260,4 @@ function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, ha
     </div>
   );
 }
+

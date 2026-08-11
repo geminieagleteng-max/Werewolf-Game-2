@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { peerNetwork } from '../network/PeerNetwork';
 import { SOCKET_EVENTS } from '../engine/socketEvents';
 import { voiceManager } from '../engine/VoiceManager';
+import { achievementManager } from '../engine/AchievementManager';
 
 const SocketContext = createContext(null);
 
@@ -40,6 +41,19 @@ export const SocketProvider = ({ children }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingPlayerIds, setSpeakingPlayerIds] = useState([]);
   const [isMicSettingsOpen, setIsMicSettingsOpen] = useState(false);
+
+  // 成就系統與榮譽稱號狀態
+  const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+  const [achievementSummary, setAchievementSummary] = useState(() => achievementManager.getSummary());
+  const [equippedTitle, setEquippedTitle] = useState(() => achievementManager.stats.equippedTitle || '新晉村民');
+
+  useEffect(() => {
+    const unsub = achievementManager.subscribe((newStats, summary) => {
+      setAchievementSummary(summary);
+      setEquippedTitle(newStats.equippedTitle || '新晉村民');
+    });
+    return unsub;
+  }, []);
 
   // 狼人隊友清單與即時暗殺投票同步 (僅狼人身分持有)
   const [werewolfTeammates, setWerewolfTeammates] = useState([]);
@@ -84,10 +98,34 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
+    const handleSystemMessageAchievement = (message) => {
+      if (!message) return;
+      if (message.includes('決鬥成功！')) {
+        achievementManager.onKnightKilledWolf();
+      }
+      if (message.includes('開槍帶走了') && (message.includes('狼') || message.includes('WEREWOLF'))) {
+        achievementManager.onHunterShotWolf();
+      }
+      if (message.includes('指定禁言')) {
+        achievementManager.onSilencerSuccess();
+      }
+      if (message.includes('平安夜') || message.includes('無人倒在黑夜之中') || message.includes('守衛守護')) {
+        achievementManager.onGuardSaved();
+      }
+      if (message.includes('翻牌公布身分') || message.includes('白痴')) {
+        achievementManager.onIdiotRevealed();
+      }
+      if (message.includes('救起') || message.includes('使用解藥')) {
+        achievementManager.onSilverWaterSaved();
+      }
+    };
+
     const unsubRoleAssigned = peerNetwork.on(SOCKET_EVENTS.GAME.ROLE_ASSIGNED, ({ player, roleInfo, werewolfTeammates: teammates }) => {
       setMyPlayer(player);
       setMyRoleInfo(roleInfo);
       setWerewolfTeammates(teammates || []);
+      achievementManager.onGameStarted(player);
+      achievementManager.onRoleAssigned(roleInfo?.id, player?.id);
       addSystemLog(`🎴 您的身分牌已發放：【${roleInfo.name}】`);
       voiceManager.unlockAudioPlayback();
     });
@@ -97,6 +135,9 @@ export const SocketProvider = ({ children }) => {
       setGameRound(round);
       setPhaseDuration(duration);
       voiceManager.unlockAudioPlayback();
+      if (phase === 'DAY_ANNOUNCE') {
+        achievementManager.onNightSurvived();
+      }
       if (phase === 'NIGHT_START' || phase === 'NIGHT_SEER') {
         setSeerCheckResult(null);
       }
@@ -107,6 +148,7 @@ export const SocketProvider = ({ children }) => {
 
     const unsubSystemMsg = peerNetwork.on(SOCKET_EVENTS.GAME.SYSTEM_MSG, ({ message }) => {
       addSystemLog(message);
+      handleSystemMessageAchievement(message);
     });
 
     const unsubChat = peerNetwork.on(SOCKET_EVENTS.ACTION.RECEIVE_CHAT, (chat) => {
@@ -115,6 +157,7 @@ export const SocketProvider = ({ children }) => {
 
     const unsubSeer = peerNetwork.on(SOCKET_EVENTS.ACTION.SEER_RESULT, (result) => {
       setSeerCheckResult(result);
+      achievementManager.onSeerResult(result);
     });
 
     const unsubWitch = peerNetwork.on(SOCKET_EVENTS.ACTION.WITCH_NIGHT_INFO, (info) => {
@@ -137,6 +180,7 @@ export const SocketProvider = ({ children }) => {
 
     const unsubGameOver = peerNetwork.on(SOCKET_EVENTS.GAME.OVER, (data) => {
       setGameOverData(data);
+      achievementManager.onGameOver(data, myPlayer);
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
     });
 
@@ -169,7 +213,7 @@ export const SocketProvider = ({ children }) => {
       unsubKicked();
       unsubError();
     };
-  }, [networkMode, addSystemLog]);
+  }, [networkMode, addSystemLog, myPlayer]);
 
   // ----------------------------------------------------
   // Socket.io 伺服器連線 (選擇自架伺服器模式時使用)
@@ -218,6 +262,8 @@ export const SocketProvider = ({ children }) => {
       setMyPlayer(player);
       setMyRoleInfo(roleInfo);
       setWerewolfTeammates(teammates || []);
+      achievementManager.onGameStarted(player);
+      achievementManager.onRoleAssigned(roleInfo?.id, player?.id);
       addSystemLog(`🎴 您的身分牌已發放：【${roleInfo.name}】`);
     });
 
@@ -225,6 +271,9 @@ export const SocketProvider = ({ children }) => {
       setGamePhase(phase);
       setGameRound(round);
       setPhaseDuration(duration);
+      if (phase === 'DAY_ANNOUNCE') {
+        achievementManager.onNightSurvived();
+      }
       if (phase === 'NIGHT_START' || phase === 'NIGHT_SEER') {
         setSeerCheckResult(null);
       }
@@ -235,6 +284,24 @@ export const SocketProvider = ({ children }) => {
 
     s.on('game:system_message', ({ message }) => {
       addSystemLog(message);
+      if (message.includes('決鬥成功！')) {
+        achievementManager.onKnightKilledWolf();
+      }
+      if (message.includes('開槍帶走了') && (message.includes('狼') || message.includes('WEREWOLF'))) {
+        achievementManager.onHunterShotWolf();
+      }
+      if (message.includes('指定禁言')) {
+        achievementManager.onSilencerSuccess();
+      }
+      if (message.includes('平安夜') || message.includes('無人倒在黑夜之中') || message.includes('守衛守護')) {
+        achievementManager.onGuardSaved();
+      }
+      if (message.includes('翻牌公布身分') || message.includes('白痴')) {
+        achievementManager.onIdiotRevealed();
+      }
+      if (message.includes('救起') || message.includes('使用解藥')) {
+        achievementManager.onSilverWaterSaved();
+      }
     });
 
     s.on('action:receive_chat', (chat) => {
@@ -243,6 +310,7 @@ export const SocketProvider = ({ children }) => {
 
     s.on('action:seer_result', (result) => {
       setSeerCheckResult(result);
+      achievementManager.onSeerResult(result);
     });
 
     s.on('action:witch_night_info', (info) => {
@@ -265,6 +333,7 @@ export const SocketProvider = ({ children }) => {
 
     s.on('game:over', (data) => {
       setGameOverData(data);
+      achievementManager.onGameOver(data, myPlayer);
       addSystemLog(`🏆 遊戲結束！${data.reason}`);
     });
 
@@ -396,6 +465,7 @@ export const SocketProvider = ({ children }) => {
     } else {
       socket?.emit('action:send_chat', { message: message.trim() });
     }
+    achievementManager.onChatSent();
   };
 
   const selectWerewolfTarget = (targetId) => {
@@ -422,6 +492,15 @@ export const SocketProvider = ({ children }) => {
     } else {
       socket?.emit('action:witch_action', { useAntidote, poisonTargetId });
     }
+    if (useAntidote) {
+      achievementManager.onWitchSaveSuccess();
+    }
+    if (poisonTargetId) {
+      const target = room?.players?.find((p) => p.id === poisonTargetId);
+      if (target?.role === 'WEREWOLF') {
+        achievementManager.onWitchPoisonWolfSuccess();
+      }
+    }
   };
 
   const protectGuardTarget = (targetId) => {
@@ -445,6 +524,9 @@ export const SocketProvider = ({ children }) => {
       peerNetwork.emit(SOCKET_EVENTS.ACTION.CAST_VOTE, { targetId });
     } else {
       socket?.emit('action:cast_vote', { targetId });
+    }
+    if (targetId) {
+      achievementManager.onDayVoted();
     }
   };
 
@@ -485,6 +567,12 @@ export const SocketProvider = ({ children }) => {
       peerNetwork.emit(SOCKET_EVENTS.ACTION.VOTE_SKIP_DISCUSSION, { skip });
     } else {
       socket?.emit('action:vote_skip_discussion', { skip });
+    }
+  };
+
+  const trackRoleManualView = (roleKey) => {
+    if (roleKey) {
+      achievementManager.onRoleManualViewed(roleKey);
     }
   };
 
@@ -548,8 +636,11 @@ export const SocketProvider = ({ children }) => {
     const newMuted = voiceManager.toggleMute();
     setIsMicMuted(newMuted);
     voiceManager.unlockAudioPlayback();
-    if (!newMuted && networkMode === 'P2P') {
-      peerNetwork.connectAudioToAllPeers();
+    if (!newMuted) {
+      achievementManager.onVoiceUsed();
+      if (networkMode === 'P2P') {
+        peerNetwork.connectAudioToAllPeers();
+      }
     }
   };
 
@@ -604,6 +695,11 @@ export const SocketProvider = ({ children }) => {
         speakingPlayerIds,
         isMicSettingsOpen,
         setIsMicSettingsOpen,
+        isAchievementsOpen,
+        setIsAchievementsOpen,
+        achievementSummary,
+        equippedTitle,
+        trackRoleManualView,
         initMic,
         toggleMic,
         createRoom,

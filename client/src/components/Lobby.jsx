@@ -34,6 +34,9 @@ export const Lobby = () => {
     isSpeaking,
     micLevel,
     setIsMicSettingsOpen,
+    equippedTitle,
+    setIsAchievementsOpen,
+    achievementSummary,
   } = useSocket();
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('werewolf_player_name') || '玩家一');
@@ -178,18 +181,42 @@ export const Lobby = () => {
             </div>
           )}
 
-          {/* 暱稱輸入 */}
-          <div className="max-w-sm mx-auto mb-5">
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">
-              玩家暱稱
-            </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={handleNameChange}
-              placeholder="輸入您的暱稱..."
-              className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
-            />
+          {/* 暱稱與稱號榮譽卡 */}
+          <div className="max-w-sm mx-auto mb-5 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-medium text-zinc-400">
+                玩家暱稱
+              </label>
+              {equippedTitle && (
+                <button
+                  type="button"
+                  onClick={() => setIsAchievementsOpen?.(true)}
+                  className="text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-amber-950/60 hover:bg-amber-950 px-2 py-0.5 rounded-full border border-amber-700/80 transition-all flex items-center gap-1 cursor-pointer"
+                  title="點擊更換稱號"
+                >
+                  <span>👑 【{equippedTitle}】</span>
+                  <span className="text-[9px] text-zinc-500">更換</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={playerName}
+                onChange={handleNameChange}
+                placeholder="輸入您的暱稱..."
+                className="flex-1 px-3.5 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setIsAchievementsOpen?.(true)}
+                className="px-3 py-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-amber-500/50 rounded-xl text-xs text-amber-300 font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                title="查看成就圖鑑"
+              >
+                <span>🏆</span>
+                <span className="text-[11px]">{achievementSummary?.unlockedCount || 0}</span>
+              </button>
+            </div>
           </div>
 
           {/* 麥克風快速檢測條 */}
@@ -542,11 +569,16 @@ export const Lobby = () => {
                 </div>
               </div>
 
-              {/* 玩家暱稱 */}
-              <div className="text-center my-auto">
-                <div className="text-sm font-medium text-zinc-200 truncate">
+              {/* 玩家暱稱與榮譽稱號 */}
+              <div className="text-center my-auto flex flex-col items-center">
+                <div className="text-sm font-bold text-zinc-200 truncate max-w-[120px]">
                   {player.name} {isMe && '(我)'}
                 </div>
+                {isMe && equippedTitle && (
+                  <span className="mt-1 text-[9px] font-bold text-amber-300 bg-amber-950/80 px-1.5 py-0.2 rounded-full border border-amber-800/60 max-w-[110px] truncate">
+                    👑 【{equippedTitle}】
+                  </span>
+                )}
               </div>
 
               {/* 房主踢人 / 移除操作 */}

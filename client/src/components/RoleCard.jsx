@@ -105,7 +105,7 @@ const ROLE_THEMES = {
 };
 
 export const RoleCard = ({ onOpenSkillGuide }) => {
-  const { myPlayer, myRoleInfo, werewolfTeammates } = useSocket();
+  const { myPlayer, myRoleInfo, werewolfTeammates, equippedTitle } = useSocket();
   const [isFlipped, setIsFlipped] = useState(true);
 
   if (!myPlayer || !myRoleInfo) {
@@ -144,6 +144,11 @@ export const RoleCard = ({ onOpenSkillGuide }) => {
             </div>
 
             <div className="text-center">
+              {equippedTitle && (
+                <span className="inline-block text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800/80 mb-2">
+                  👑 【{equippedTitle}】
+                </span>
+              )}
               <span className="text-xs font-medium text-zinc-300 tracking-wider block mb-1">
                 點擊翻開身分牌
               </span>
@@ -157,9 +162,16 @@ export const RoleCard = ({ onOpenSkillGuide }) => {
           >
             {/* 頂部標題與陣營 */}
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-medium text-zinc-400">
-                #{myPlayer.seatNumber} 號位
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-mono font-medium text-zinc-400">
+                  #{myPlayer.seatNumber} 號位
+                </span>
+                {equippedTitle && (
+                  <span className="text-[9px] font-bold text-amber-300 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-800/60 max-w-[80px] truncate">
+                    【{equippedTitle}】
+                  </span>
+                )}
+              </div>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${theme.factionBadge}`}>
                 {theme.factionText}
               </span>

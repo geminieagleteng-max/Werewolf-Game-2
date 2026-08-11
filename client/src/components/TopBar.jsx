@@ -58,6 +58,9 @@ export const TopBar = ({ onOpenSkillGuide }) => {
     micLevel,
     isSpeaking,
     setIsMicSettingsOpen,
+    setIsAchievementsOpen,
+    achievementSummary,
+    equippedTitle,
   } = useSocket();
 
   const [timeLeft, setTimeLeft] = useState(0);
@@ -100,6 +103,12 @@ export const TopBar = ({ onOpenSkillGuide }) => {
               ONLINE
             </span>
 
+            {equippedTitle && (
+              <span className="hidden sm:inline-flex items-center text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800/80 ml-1">
+                👑 【{equippedTitle}】
+              </span>
+            )}
+
             {room && (
               <div className="flex items-center gap-1.5 ml-2 pl-3 border-l border-zinc-800 text-xs text-zinc-400">
                 <span>房號</span>
@@ -132,7 +141,7 @@ export const TopBar = ({ onOpenSkillGuide }) => {
           </div>
         )}
 
-        {/* 右側：語音麥克風、技能指南快捷鍵、連線狀態與操作 */}
+        {/* 右側：語音麥克風、榮譽成就、技能指南快捷鍵、連線狀態與操作 */}
         <div className="flex items-center gap-2 sm:gap-2.5">
           {/* 麥克風控制按鈕 (全域常駐) */}
           <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 shadow-sm">
@@ -168,6 +177,19 @@ export const TopBar = ({ onOpenSkillGuide }) => {
               ⚙️
             </button>
           </div>
+
+          {/* 榮譽成就系統按鈕 (全域常駐) */}
+          <button
+            onClick={() => setIsAchievementsOpen?.(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-yellow-500/20 to-amber-500/30 hover:from-yellow-500/30 hover:to-amber-500/40 border border-yellow-500/50 rounded-lg text-xs text-yellow-300 font-semibold transition-all cursor-pointer shadow-sm group"
+            title="查看榮譽成就與稱號衣櫥"
+          >
+            <span className="group-hover:scale-110 transition-transform">🏆</span>
+            <span className="hidden sm:inline">成就</span>
+            <span className="text-[10px] font-mono font-bold bg-amber-950/80 text-amber-300 px-1.5 py-0.2 rounded border border-amber-800">
+              {achievementSummary?.unlockedCount || 0}/{achievementSummary?.totalCount || 28}
+            </span>
+          </button>
 
           {/* 角色技能百科按鈕 (全域常駐) */}
           <button

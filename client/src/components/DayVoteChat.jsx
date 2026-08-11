@@ -13,6 +13,7 @@ export const DayVoteChat = () => {
     knightDuel,
     chatMessages,
     systemLogs,
+    equippedTitle,
   } = useSocket();
 
   const [selectedVoteTargetId, setSelectedVoteTargetId] = useState(null);
@@ -259,8 +260,14 @@ export const DayVoteChat = () => {
               key={idx}
               className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
             >
-              <div className="text-[10px] text-zinc-500 mb-0.5">
-                #{msg.seatNumber} {msg.senderName} {!msg.isAlive && '(已出局)'}
+              <div className="text-[10px] text-zinc-500 mb-0.5 flex items-center gap-1">
+                <span>#{msg.seatNumber} {msg.senderName}</span>
+                {isMe && equippedTitle && (
+                  <span className="text-[9px] font-bold text-amber-300 bg-amber-950/80 px-1.5 py-0.2 rounded border border-amber-800/60">
+                    【{equippedTitle}】
+                  </span>
+                )}
+                {!msg.isAlive && <span>(已出局)</span>}
               </div>
               <div
                 className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
