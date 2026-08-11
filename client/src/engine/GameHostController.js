@@ -23,7 +23,7 @@ export class GameHostController {
     this.discussionSkipVotes = new Set();
   }
 
-  createRoom({ roomId, roomName, maxPlayers, roleConfig, playerName, hostId }) {
+  createRoom({ roomId, roomName, maxPlayers, roleConfig, playerName, hostId, avatar, authProvider }) {
     const rId = roomId || Math.random().toString(36).substring(2, 8).toUpperCase();
     const rName = (roomName && roomName.trim()) || '狼人殺';
     const mPlayers = (roleConfig && roleConfig.length) ? roleConfig.length : (parseInt(maxPlayers, 10) || 6);
@@ -34,7 +34,7 @@ export class GameHostController {
       this.room.maxPlayers = roleConfig.length;
     }
 
-    const hostPlayer = new Player(hostId, hostId, playerName || '房主', 1, true, false);
+    const hostPlayer = new Player(hostId, hostId, playerName || '房主', 1, true, false, avatar || null, authProvider || 'GUEST');
     this.room.addPlayer(hostPlayer);
 
     this.broadcastState();
@@ -45,11 +45,11 @@ export class GameHostController {
     return { room: this.room, player: hostPlayer };
   }
 
-  addRemotePlayer(playerId, playerName) {
+  addRemotePlayer(playerId, playerName, avatar, authProvider) {
     if (!this.room) return { success: false, message: '房間尚未建立' };
 
     const pName = playerName || `玩家_${playerId.slice(0, 4)}`;
-    const player = new Player(playerId, playerId, pName, 1, false, false);
+    const player = new Player(playerId, playerId, pName, 1, false, false, avatar || null, authProvider || 'GUEST');
     const res = this.room.addPlayer(player);
 
     if (!res.success) {

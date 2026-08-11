@@ -4,6 +4,7 @@ import { peerNetwork } from '../network/PeerNetwork';
 import { SOCKET_EVENTS } from '../engine/socketEvents';
 import { voiceManager } from '../engine/VoiceManager';
 import { achievementManager } from '../engine/AchievementManager';
+import { googleAuthManager } from '../engine/GoogleAuthManager';
 
 const SocketContext = createContext(null);
 
@@ -47,12 +48,25 @@ export const SocketProvider = ({ children }) => {
   const [achievementSummary, setAchievementSummary] = useState(() => achievementManager.getSummary());
   const [equippedTitle, setEquippedTitle] = useState(() => achievementManager.stats.equippedTitle || '新晉村民');
 
+  // Google 認證與個人檔案狀態
+  const [currentUser, setCurrentUser] = useState(() => googleAuthManager.currentUser);
+  const [isGoogleLinked, setIsGoogleLinked] = useState(() => googleAuthManager.isGoogleLinked());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   useEffect(() => {
     const unsub = achievementManager.subscribe((newStats, summary) => {
       setAchievementSummary(summary);
       setEquippedTitle(newStats.equippedTitle || '新晉村民');
     });
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsubAuth = googleAuthManager.subscribe((user, linked) => {
+      setCurrentUser({ ...user });
+      setIsGoogleLinked(linked);
+    });
+    return unsubAuth;
   }, []);
 
   // 狼人隊友清單與即時暗殺投票同步 (僅狼人身分持有)
@@ -370,8 +384,11 @@ export const SocketProvider = ({ children }) => {
   // ----------------------------------------------------
   // 操作派發方法 (統整 P2P 與 Socket.io)
   // ----------------------------------------------------
-  const createRoom = async (playerName, roomName, maxPlayers, roleConfig) => {
+  const createRoom = async (playerName, roomName, maxPlayers, roleConfig, customAvatar, customAuthProvider) => {
     setErrorMessage(null);
+    const avatar = customAvatar || currentUser?.picture || null;
+    const authProvider = customAuthProvider || currentUser?.authProvider || 'GUEST';
+
     if (networkMode === 'P2P') {
       try {
         const { room: r, player: p } = await peerNetwork.hostRoom({
@@ -379,6 +396,8 @@ export const SocketProvider = ({ children }) => {
           maxPlayers,
           roleConfig,
           playerName,
+          avatar,
+          authProvider,
         });
         setRoom(r.toPublicJSON());
         setMyPlayer(p.toPublicJSON());
@@ -386,25 +405,27 @@ export const SocketProvider = ({ children }) => {
         setErrorMessage('建立房間失敗，請重新嘗試！');
       }
     } else {
-      socket?.emit('room:create', { playerName, roomName, maxPlayers, roleConfig });
+      socket?.emit('room:create', { playerName, roomName, maxPlayers, roleConfig, avatar, authProvider });
     }
   };
 
-  const joinRoom = async (playerName, roomId) => {
+  const joinRoom = async (playerName, roomId, customAvatar, customAuthProvider) => {
     setErrorMessage(null);
     if (!roomId || !roomId.trim()) {
       setErrorMessage('請輸入 6 位房間代碼！');
       return;
     }
+    const avatar = customAvatar || currentUser?.picture || null;
+    const authProvider = customAuthProvider || currentUser?.authProvider || 'GUEST';
 
     if (networkMode === 'P2P') {
       try {
-        await peerNetwork.joinRoom({ roomId: roomId.trim(), playerName });
+        await peerNetwork.joinRoom({ roomId: roomId.trim(), playerName, avatar, authProvider });
       } catch (err) {
         setErrorMessage('加入房間失敗，請確認房號是否正確且房主在線上！');
       }
     } else {
-      socket?.emit('room:join', { playerName, roomId: roomId.trim() });
+      socket?.emit('room:join', { playerName, roomId: roomId.trim(), avatar, authProvider });
     }
   };
 
@@ -700,6 +721,11 @@ export const SocketProvider = ({ children }) => {
         achievementSummary,
         equippedTitle,
         trackRoleManualView,
+        currentUser,
+        isGoogleLinked,
+        isAuthModalOpen,
+        setIsAuthModalOpen,
+        googleAuthManager,
         initMic,
         toggleMic,
         createRoom,

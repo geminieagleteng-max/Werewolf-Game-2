@@ -52,11 +52,13 @@ export class PeerNetwork {
   }
 
   // 房主建立 P2P 房間
-  async hostRoom({ roomId, roomName, maxPlayers, roleConfig, playerName }) {
+  async hostRoom({ roomId, roomName, maxPlayers, roleConfig, playerName, avatar, authProvider }) {
     this.cleanup();
     this.isHost = true;
     this.roomId = roomId || Math.random().toString(36).substring(2, 8).toUpperCase();
     this.myPlayerName = playerName || '房主';
+    this.myAvatar = avatar || null;
+    this.myAuthProvider = authProvider || 'GUEST';
 
     const fullPeerId = `${PEER_PREFIX}${this.roomId.toLowerCase()}`;
 
@@ -105,6 +107,8 @@ export class PeerNetwork {
             roleConfig,
             playerName: this.myPlayerName,
             hostId: this.myPeerId,
+            avatar: this.myAvatar,
+            authProvider: this.myAuthProvider,
           });
 
           this.dispatchLocal('connect', {});
@@ -166,11 +170,13 @@ export class PeerNetwork {
   }
 
   // 訪客加入 P2P 房間
-  async joinRoom({ roomId, playerName }) {
+  async joinRoom({ roomId, playerName, avatar, authProvider }) {
     this.cleanup();
     this.isHost = false;
     this.roomId = (roomId || '').trim().toUpperCase();
     this.myPlayerName = playerName || '玩家';
+    this.myAvatar = avatar || null;
+    this.myAuthProvider = authProvider || 'GUEST';
 
     const targetHostPeerId = `${PEER_PREFIX}${this.roomId.toLowerCase()}`;
 
@@ -206,7 +212,11 @@ export class PeerNetwork {
             conn.send(
               JSON.stringify({
                 event: SOCKET_EVENTS.ROOM.JOIN,
-                payload: { playerName: this.myPlayerName },
+                payload: {
+                  playerName: this.myPlayerName,
+                  avatar: this.myAvatar,
+                  authProvider: this.myAuthProvider,
+                },
               })
             );
 
@@ -304,7 +314,7 @@ export class PeerNetwork {
 
     switch (event) {
       case SOCKET_EVENTS.ROOM.JOIN:
-        this.hostController.addRemotePlayer(senderId, payload.playerName);
+        this.hostController.addRemotePlayer(senderId, payload.playerName, payload.avatar, payload.authProvider);
         break;
       case SOCKET_EVENTS.ROOM.TOGGLE_READY:
         this.hostController.toggleReady(senderId);

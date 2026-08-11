@@ -10,13 +10,17 @@ class Player {
    * @param {string} name - 玩家名稱
    * @param {number} seatNumber - 座位號碼 (1 ~ N)
    * @param {boolean} isHost - 是否為房主
+   * @param {string|null} avatar - 頭像 URL (如 Google 頭像)
+   * @param {string} authProvider - 登入驗證來源 ('GOOGLE' | 'GUEST')
    */
-  constructor(id, socketId, name, seatNumber = 1, isHost = false) {
+  constructor(id, socketId, name, seatNumber = 1, isHost = false, avatar = null, authProvider = 'GUEST') {
     this.id = id;
     this.socketId = socketId;
     this.name = name;
     this.seatNumber = seatNumber;
     this.isHost = isHost;
+    this.avatar = avatar;
+    this.authProvider = authProvider || 'GUEST';
     this.isReady = false;
 
     // 遊戲內身分與狀態
@@ -85,6 +89,8 @@ class Player {
       name: this.name,
       seatNumber: this.seatNumber,
       isHost: this.isHost,
+      avatar: this.avatar,
+      authProvider: this.authProvider,
       isReady: this.isReady,
       isAlive: this.isAlive,
       isIdiotRevealed: this.isIdiotRevealed,

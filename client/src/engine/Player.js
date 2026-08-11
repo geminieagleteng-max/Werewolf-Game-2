@@ -11,14 +11,18 @@ export class Player {
    * @param {number} seatNumber - 座位號碼 (1 ~ N)
    * @param {boolean} isHost - 是否為房主
    * @param {boolean} isBot - 是否為 AI 機器人
+   * @param {string|null} avatar - 頭像 URL (如 Google 頭像)
+   * @param {string} authProvider - 登入驗證來源 ('GOOGLE' | 'GUEST')
    */
-  constructor(id, socketId, name, seatNumber = 1, isHost = false, isBot = false) {
+  constructor(id, socketId, name, seatNumber = 1, isHost = false, isBot = false, avatar = null, authProvider = 'GUEST') {
     this.id = id;
     this.socketId = socketId;
     this.name = name;
     this.seatNumber = seatNumber;
     this.isHost = isHost;
     this.isBot = isBot;
+    this.avatar = avatar;
+    this.authProvider = authProvider || (isBot ? 'BOT' : 'GUEST');
     this.isReady = isHost || isBot;
 
     // 遊戲內身分與狀態
@@ -83,6 +87,8 @@ export class Player {
       seatNumber: this.seatNumber,
       isHost: this.isHost,
       isBot: this.isBot,
+      avatar: this.avatar,
+      authProvider: this.authProvider,
       isReady: this.isReady,
       isAlive: this.isAlive,
       isIdiotRevealed: this.isIdiotRevealed,

@@ -11,6 +11,7 @@ import RoleRevealModal from './components/RoleRevealModal';
 import MicrophoneSettingsModal from './components/MicrophoneSettingsModal';
 import AchievementToast from './components/AchievementToast';
 import AchievementsModal from './components/AchievementsModal';
+import AuthProfileModal from './components/AuthProfileModal';
 import { voiceManager } from './engine/VoiceManager';
 import { achievementManager } from './engine/AchievementManager';
 
@@ -199,6 +200,8 @@ function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, ha
     setIsMicSettingsOpen,
     isAchievementsOpen,
     setIsAchievementsOpen,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
     trackRoleManualView,
   } = useSocket();
 
@@ -239,6 +242,12 @@ function AppContent({ isSkillModalOpen, setIsSkillModalOpen, activeModalRole, ha
         isOpen={isAchievementsOpen}
         onClose={() => setIsAchievementsOpen(false)}
         playerName={myPlayer?.name || localStorage.getItem('werewolf_player_name') || '玩家'}
+      />
+
+      {/* Google 帳號與個人檔案管理 Modal */}
+      <AuthProfileModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
 
       {/* 抽牌身分揭曉 Spotlight Modal */}

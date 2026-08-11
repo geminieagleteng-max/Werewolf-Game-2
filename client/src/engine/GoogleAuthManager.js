@@ -25,7 +25,10 @@ export class GoogleAuthManager {
 
   loadClientId() {
     try {
-      return localStorage.getItem(STORAGE_CLIENT_ID_KEY) || DEFAULT_CLIENT_ID;
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(STORAGE_CLIENT_ID_KEY) || DEFAULT_CLIENT_ID;
+      }
+      return DEFAULT_CLIENT_ID;
     } catch {
       return DEFAULT_CLIENT_ID;
     }
@@ -34,10 +37,14 @@ export class GoogleAuthManager {
   setCustomClientId(newId) {
     if (!newId || !newId.trim()) {
       this.clientId = DEFAULT_CLIENT_ID;
-      localStorage.removeItem(STORAGE_CLIENT_ID_KEY);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_CLIENT_ID_KEY);
+      }
     } else {
       this.clientId = newId.trim();
-      localStorage.setItem(STORAGE_CLIENT_ID_KEY, this.clientId);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_CLIENT_ID_KEY, this.clientId);
+      }
     }
     this.isInitialized = false;
     this.initGIS();
@@ -46,16 +53,24 @@ export class GoogleAuthManager {
 
   loadProfile() {
     try {
-      const data = localStorage.getItem(STORAGE_PROFILE_KEY);
-      if (data) {
-        return JSON.parse(data);
+      if (typeof localStorage !== 'undefined') {
+        const data = localStorage.getItem(STORAGE_PROFILE_KEY);
+        if (data) {
+          return JSON.parse(data);
+        }
       }
     } catch (e) {
       console.warn('載入 Google 帳號檔案失敗', e);
     }
 
     // 預設訪客身分
-    const defaultName = localStorage.getItem('werewolf_player_name') || '玩家一';
+    let defaultName = '玩家一';
+    try {
+      if (typeof localStorage !== 'undefined') {
+        defaultName = localStorage.getItem('werewolf_player_name') || '玩家一';
+      }
+    } catch {}
+
     return {
       id: `guest_${Date.now()}`,
       name: defaultName,
@@ -69,12 +84,14 @@ export class GoogleAuthManager {
   saveProfile(profile) {
     this.currentUser = profile;
     try {
-      localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
-      if (profile.name) {
-        localStorage.setItem('werewolf_player_name', profile.name);
-      }
-      if (profile.picture) {
-        localStorage.setItem('werewolf_player_avatar', profile.picture);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
+        if (profile.name) {
+          localStorage.setItem('werewolf_player_name', profile.name);
+        }
+        if (profile.picture) {
+          localStorage.setItem('werewolf_player_avatar', profile.picture);
+        }
       }
     } catch (e) {
       console.error('儲存 Google 個人檔案失敗', e);
