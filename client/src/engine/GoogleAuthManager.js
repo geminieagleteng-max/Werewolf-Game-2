@@ -26,7 +26,10 @@ export class GoogleAuthManager {
   loadClientId() {
     try {
       if (typeof localStorage !== 'undefined') {
-        return localStorage.getItem(STORAGE_CLIENT_ID_KEY) || DEFAULT_CLIENT_ID;
+        const stored = localStorage.getItem(STORAGE_CLIENT_ID_KEY);
+        if (stored && !stored.includes('werewolfonlineexampleclientid') && !stored.includes('612345678901')) {
+          return stored;
+        }
       }
       return DEFAULT_CLIENT_ID;
     } catch {
