@@ -1,4 +1,4 @@
-import { ACHIEVEMENTS, calculateHonorRank } from './achievements';
+import { ACHIEVEMENTS, calculateHonorRank } from './achievements.js';
 
 const STORAGE_KEY = 'werewolf_achievement_stats_v1';
 
@@ -12,6 +12,10 @@ const DEFAULT_STATS = {
   maxStreak: 0,
   flawlessWins: 0,
 
+  // 12 職業專屬絕技追蹤
+  wolfKilledGods: 0,
+  hiddenWolfGoldWaterWins: 0,
+  hiddenWolfAwakenedWins: 0,
   seerWolfFound: 0,
   seerWolfFoundSingleGame: 0,
   witchSaved: 0,
@@ -19,10 +23,18 @@ const DEFAULT_STATS = {
   witchDualHitSingleGame: 0,
   guardSaved: 0,
   hunterShotWolf: 0,
+  hunterFinishedGame: 0,
   knightKilledWolf: 0,
+  knightKilledHiddenOrDay1: 0,
   silencedCount: 0,
+  silencedWolvesCount: 0,
   dreamKilledWolf: 0,
+  dreamSavedGood: 0,
+  thirdPartyLoversWon: 0,
   idiotRevealed: 0,
+  idiotRevealedAndWon: 0,
+  villagerVotedWolvesCount: 0,
+  villagerSurvivedWon: 0,
 
   loneWolfWon: 0,
   wolfOscarWins: 0,
@@ -53,27 +65,32 @@ class AchievementManager {
       witchPoisonedWolfThisGame: false,
       wasSilverWater: false,
       wasVotedInDay: false,
+      hiddenWolfCheckedAsGood: false,
+      hiddenWolfWasAwakened: false,
+      idiotWasRevealed: false,
       newlyUnlockedThisGame: [],
     };
   }
 
   loadStats() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        let equipped = parsed.equippedTitle || '見習村民';
-        // 若舊版預設為「新晉村民」但尚未解鎖 first_game 成就，平滑遷移至「見習村民」
-        if (equipped === '新晉村民' && !parsed.unlockedAchievements?.['first_game']) {
-          equipped = '見習村民';
+      if (typeof localStorage !== 'undefined') {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          const parsed = JSON.parse(data);
+          let equipped = parsed.equippedTitle || '見習村民';
+          // 若舊版預設為「新晉村民」但尚未解鎖 first_game 成就，平滑遷移至「見習村民」
+          if (equipped === '新晉村民' && !parsed.unlockedAchievements?.['first_game']) {
+            equipped = '見習村民';
+          }
+          return {
+            ...DEFAULT_STATS,
+            ...parsed,
+            equippedTitle: equipped,
+            unlockedAchievements: parsed.unlockedAchievements || {},
+            loreViewedRoles: parsed.loreViewedRoles || [],
+          };
         }
-        return {
-          ...DEFAULT_STATS,
-          ...parsed,
-          equippedTitle: equipped,
-          unlockedAchievements: parsed.unlockedAchievements || {},
-          loreViewedRoles: parsed.loreViewedRoles || [],
-        };
       }
     } catch (e) {
       console.warn('載入成就資料失敗，使用預設值', e);
@@ -83,7 +100,9 @@ class AchievementManager {
 
   saveStats() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.stats));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.stats));
+      }
       this.notifyListeners();
     } catch (e) {
       console.error('儲存成就資料失敗', e);
@@ -175,6 +194,9 @@ class AchievementManager {
       witchPoisonedWolfThisGame: false,
       wasSilverWater: false,
       wasVotedInDay: false,
+      hiddenWolfCheckedAsGood: false,
+      hiddenWolfWasAwakened: false,
+      idiotWasRevealed: false,
       newlyUnlockedThisGame: [],
     };
   }
@@ -220,18 +242,27 @@ class AchievementManager {
     this.evaluateAchievements();
   }
 
-  onKnightKilledWolf() {
+  onKnightKilledWolf({ isDay1 = false, isHiddenWolf = false } = {}) {
     this.stats.knightKilledWolf = (this.stats.knightKilledWolf || 0) + 1;
+    if (isDay1 || isHiddenWolf) {
+      this.stats.knightKilledHiddenOrDay1 = (this.stats.knightKilledHiddenOrDay1 || 0) + 1;
+    }
     this.evaluateAchievements();
   }
 
-  onHunterShotWolf() {
+  onHunterShotWolf({ isLastWolf = false } = {}) {
     this.stats.hunterShotWolf = (this.stats.hunterShotWolf || 0) + 1;
+    if (isLastWolf) {
+      this.stats.hunterFinishedGame = (this.stats.hunterFinishedGame || 0) + 1;
+    }
     this.evaluateAchievements();
   }
 
-  onSilencerSuccess() {
+  onSilencerSuccess({ targetRole } = {}) {
     this.stats.silencedCount = (this.stats.silencedCount || 0) + 1;
+    if (targetRole === 'WEREWOLF' || targetRole === 'HIDDEN_WOLF') {
+      this.stats.silencedWolvesCount = (this.stats.silencedWolvesCount || 0) + 1;
+    }
     this.evaluateAchievements();
   }
 
@@ -240,8 +271,32 @@ class AchievementManager {
     this.evaluateAchievements();
   }
 
+  onDreamSavedGood() {
+    this.stats.dreamSavedGood = (this.stats.dreamSavedGood || 0) + 1;
+    this.evaluateAchievements();
+  }
+
+  onWerewolfKilledGod() {
+    this.stats.wolfKilledGods = (this.stats.wolfKilledGods || 0) + 1;
+    this.evaluateAchievements();
+  }
+
+  onVillagerVotedWolf() {
+    this.stats.villagerVotedWolvesCount = (this.stats.villagerVotedWolvesCount || 0) + 1;
+    this.evaluateAchievements();
+  }
+
+  onHiddenWolfCheckedAsGood() {
+    this.currentMatch.hiddenWolfCheckedAsGood = true;
+  }
+
+  onHiddenWolfAwakened() {
+    this.currentMatch.hiddenWolfWasAwakened = true;
+  }
+
   onIdiotRevealed() {
     this.stats.idiotRevealed = (this.stats.idiotRevealed || 0) + 1;
+    this.currentMatch.idiotWasRevealed = true;
     this.evaluateAchievements();
   }
 
@@ -286,8 +341,8 @@ class AchievementManager {
 
     const winner = gameOverData.winner;
     const myRole = myPlayer.role;
-    const isGood = myRole !== 'WEREWOLF';
-    const isWolf = myRole === 'WEREWOLF';
+    const isGood = myRole !== 'WEREWOLF' && myRole !== 'HIDDEN_WOLF';
+    const isWolf = myRole === 'WEREWOLF' || myRole === 'HIDDEN_WOLF';
 
     let isWon = false;
     if (winner === 'GOOD' && isGood) {
@@ -300,6 +355,7 @@ class AchievementManager {
       if (winner === 'THIRD') {
         isWon = true;
         this.stats.loverWins = (this.stats.loverWins || 0) + 1;
+        this.stats.thirdPartyLoversWon = (this.stats.thirdPartyLoversWon || 0) + 1;
       }
     }
 
@@ -313,15 +369,15 @@ class AchievementManager {
       // 檢查是否完封勝 (己方全員存活)
       if (gameOverData.allPlayers && Array.isArray(gameOverData.allPlayers)) {
         const teamPlayers = gameOverData.allPlayers.filter((p) =>
-          isWolf ? p.role === 'WEREWOLF' : p.role !== 'WEREWOLF'
+          isWolf ? (p.role === 'WEREWOLF' || p.role === 'HIDDEN_WOLF') : (p.role !== 'WEREWOLF' && p.role !== 'HIDDEN_WOLF')
         );
         const allTeamAlive = teamPlayers.length > 0 && teamPlayers.every((p) => p.isAlive);
         if (allTeamAlive) {
           this.stats.flawlessWins = (this.stats.flawlessWins || 0) + 1;
         }
 
-        // 殘狼翻盤：狼隊友全出局，僅自己 1 隻存活並獲勝
-        if (isWolf) {
+        // 狼人專屬結算
+        if (myRole === 'WEREWOLF') {
           const aliveWolves = gameOverData.allPlayers.filter((p) => p.role === 'WEREWOLF' && p.isAlive);
           if (aliveWolves.length === 1 && aliveWolves[0].id === myPlayer.id) {
             this.stats.loneWolfWon = (this.stats.loneWolfWon || 0) + 1;
@@ -331,6 +387,26 @@ class AchievementManager {
           if (!this.currentMatch.wasVotedInDay) {
             this.stats.wolfOscarWins = (this.stats.wolfOscarWins || 0) + 1;
           }
+        }
+
+        // 隱狼專屬結算
+        if (myRole === 'HIDDEN_WOLF') {
+          if (this.currentMatch.hiddenWolfCheckedAsGood) {
+            this.stats.hiddenWolfGoldWaterWins = (this.stats.hiddenWolfGoldWaterWins || 0) + 1;
+          }
+          if (this.currentMatch.hiddenWolfWasAwakened && myPlayer.isAlive) {
+            this.stats.hiddenWolfAwakenedWins = (this.stats.hiddenWolfAwakenedWins || 0) + 1;
+          }
+        }
+
+        // 白痴翻牌獲勝
+        if (myRole === 'IDIOT' && this.currentMatch.idiotWasRevealed) {
+          this.stats.idiotRevealedAndWon = (this.stats.idiotRevealedAndWon || 0) + 1;
+        }
+
+        // 村民存活獲勝
+        if (myRole === 'VILLAGER' && myPlayer.isAlive) {
+          this.stats.villagerSurvivedWon = (this.stats.villagerSurvivedWon || 0) + 1;
         }
       }
 
@@ -372,6 +448,7 @@ class AchievementManager {
   equipTitle(title) {
     this.stats.equippedTitle = title;
     this.saveStats();
+    return { success: true, equippedTitle: title };
   }
 
   resetAllStats() {

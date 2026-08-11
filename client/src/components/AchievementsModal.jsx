@@ -6,6 +6,7 @@ import {
   ACHIEVEMENT_TIERS,
 } from '../engine/achievements';
 import { achievementManager } from '../engine/AchievementManager';
+import { ROLE_NAMES_ZH } from '../engine/roles';
 
 export const AchievementsModal = ({ isOpen, onClose, playerName }) => {
   const [stats, setStats] = useState(() => achievementManager.stats);
@@ -323,6 +324,11 @@ export const AchievementsModal = ({ isOpen, onClose, playerName }) => {
                               <div className="flex items-center justify-between gap-1">
                                 <h4 className="text-sm font-bold text-white truncate flex items-center gap-1.5">
                                   <span>{ach.title}</span>
+                                  {ach.role && (
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800/90 text-amber-300 border border-amber-500/30 font-medium">
+                                      {ROLE_NAMES_ZH[ach.role] || ach.role} 專屬
+                                    </span>
+                                  )}
                                 </h4>
                                 <span className={`text-[10px] px-1.5 py-0.2 rounded border font-semibold ${tier.badge}`}>
                                   {tier.name}

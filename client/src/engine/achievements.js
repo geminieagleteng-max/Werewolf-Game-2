@@ -14,7 +14,7 @@ export const ACHIEVEMENT_CATEGORIES = {
 export const CATEGORY_LABELS = {
   [ACHIEVEMENT_CATEGORIES.ALL]: { label: '全部成就', icon: '🏆' },
   [ACHIEVEMENT_CATEGORIES.VICTORY]: { label: '陣營征途', icon: '⚔️' },
-  [ACHIEVEMENT_CATEGORIES.ROLE_SKILL]: { label: '神職絕技', icon: '✨' },
+  [ACHIEVEMENT_CATEGORIES.ROLE_SKILL]: { label: '全職業絕技', icon: '✨' },
   [ACHIEVEMENT_CATEGORIES.MIND_GAME]: { label: '心理博弈', icon: '🎭' },
   [ACHIEVEMENT_CATEGORIES.SPECIAL]: { label: '社交彩蛋', icon: '🌟' },
 };
@@ -200,9 +200,57 @@ export const ACHIEVEMENTS = [
     isUnlocked: (s) => (s.flawlessWins || 0) >= 1,
   },
 
-  // ================= 神職絕技 (ROLE_SKILL) =================
+  // ================= 全職業絕技 (ROLE_SKILL) =================
+  // 1. 狼人 (WEREWOLF)
+  {
+    id: 'wolf_knife_leader',
+    role: 'WEREWOLF',
+    title: '嗜血夜刃',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.SILVER,
+    icon: '🗡️',
+    description: '作為狼人夜間累計成功擊殺 3 名好人神職。',
+    rewardTitle: '血夜處刑人',
+    ap: 25,
+    maxProgress: 3,
+    getProgress: (s) => Math.min(3, s.wolfKilledGods || 0),
+    isUnlocked: (s) => (s.wolfKilledGods || 0) >= 3,
+  },
+
+  // 2. 隱狼 (HIDDEN_WOLF)
+  {
+    id: 'hidden_wolf_deceiver',
+    role: 'HIDDEN_WOLF',
+    title: '深淵偽裝者',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.SILVER,
+    icon: '🌑',
+    description: '作為隱狼成功被預言家查驗為好人金水並最終取得勝利。',
+    rewardTitle: '深水金剛狼',
+    ap: 30,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.hiddenWolfGoldWaterWins || 0),
+    isUnlocked: (s) => (s.hiddenWolfGoldWaterWins || 0) >= 1,
+  },
+  {
+    id: 'hidden_wolf_awakening',
+    role: 'HIDDEN_WOLF',
+    title: '末日孤狼',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.GOLD,
+    icon: '🥷',
+    description: '作為隱狼在普通狼人全滅後暗夜覺醒，親自執行暗殺並獲勝。',
+    rewardTitle: '末日孤狼',
+    ap: 40,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.hiddenWolfAwakenedWins || 0),
+    isUnlocked: (s) => (s.hiddenWolfAwakenedWins || 0) >= 1,
+  },
+
+  // 3. 預言家 (SEER)
   {
     id: 'seer_wolf_hunter',
+    role: 'SEER',
     title: '洞若觀火',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.SILVER,
@@ -216,6 +264,7 @@ export const ACHIEVEMENTS = [
   },
   {
     id: 'seer_legend',
+    role: 'SEER',
     title: '全知之鏡',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.GOLD,
@@ -227,8 +276,11 @@ export const ACHIEVEMENTS = [
     getProgress: (s) => Math.min(2, s.seerWolfFoundSingleGame || 0),
     isUnlocked: (s) => (s.seerWolfFoundSingleGame || 0) >= 2,
   },
+
+  // 4. 女巫 (WITCH)
   {
     id: 'witch_savior',
+    role: 'WITCH',
     title: '妙手回春',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.BRONZE,
@@ -242,6 +294,7 @@ export const ACHIEVEMENTS = [
   },
   {
     id: 'witch_poison_wolf',
+    role: 'WITCH',
     title: '致命劇毒',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.SILVER,
@@ -255,6 +308,7 @@ export const ACHIEVEMENTS = [
   },
   {
     id: 'witch_dual_master',
+    role: 'WITCH',
     title: '神級女巫',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.LEGEND,
@@ -266,8 +320,11 @@ export const ACHIEVEMENTS = [
     getProgress: (s) => Math.min(1, s.witchDualHitSingleGame || 0),
     isUnlocked: (s) => (s.witchDualHitSingleGame || 0) >= 1,
   },
+
+  // 5. 守衛 (GUARD)
   {
     id: 'guard_iron_wall',
+    role: 'GUARD',
     title: '金湯之盾',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.SILVER,
@@ -281,6 +338,7 @@ export const ACHIEVEMENTS = [
   },
   {
     id: 'guard_guardian_angel',
+    role: 'GUARD',
     title: '鋼鐵守護',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.GOLD,
@@ -292,8 +350,11 @@ export const ACHIEVEMENTS = [
     getProgress: (s) => Math.min(3, s.guardSaved || 0),
     isUnlocked: (s) => (s.guardSaved || 0) >= 3,
   },
+
+  // 6. 獵人 (HUNTER)
   {
     id: 'hunter_bullseye',
+    role: 'HUNTER',
     title: '槍響魂斷',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.SILVER,
@@ -306,7 +367,24 @@ export const ACHIEVEMENTS = [
     isUnlocked: (s) => (s.hunterShotWolf || 0) >= 1,
   },
   {
+    id: 'hunter_carry',
+    role: 'HUNTER',
+    title: '終焉神射',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.GOLD,
+    icon: '🎯',
+    description: '獵人出局開槍擊斃最後一名狼人，完成終局絕殺！',
+    rewardTitle: '終焉神射手',
+    ap: 35,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.hunterFinishedGame || 0),
+    isUnlocked: (s) => (s.hunterFinishedGame || 0) >= 1,
+  },
+
+  // 7. 騎士 (KNIGHT)
+  {
     id: 'knight_holy_strike',
+    role: 'KNIGHT',
     title: '聖劍裁決',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.GOLD,
@@ -319,7 +397,24 @@ export const ACHIEVEMENTS = [
     isUnlocked: (s) => (s.knightKilledWolf || 0) >= 1,
   },
   {
+    id: 'knight_strike_hidden',
+    role: 'KNIGHT',
+    title: '破妄之刃',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.GOLD,
+    icon: '🗡️',
+    description: '騎士精準識破並決鬥斬殺深水隱狼，或在第 1 天白天首發拔劍斬狼！',
+    rewardTitle: '破妄大裁判長',
+    ap: 40,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.knightKilledHiddenOrDay1 || 0),
+    isUnlocked: (s) => (s.knightKilledHiddenOrDay1 || 0) >= 1,
+  },
+
+  // 8. 禁言長老 (SILENCER)
+  {
     id: 'silencer_whisper',
+    role: 'SILENCER',
     title: '禁語之印',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.BRONZE,
@@ -332,7 +427,24 @@ export const ACHIEVEMENTS = [
     isUnlocked: (s) => (s.silencedCount || 0) >= 3,
   },
   {
+    id: 'silencer_wolf_silenced',
+    role: 'SILENCER',
+    title: '沉默封喉',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.SILVER,
+    icon: '🔇',
+    description: '禁言長老累計成功指定禁言狼人陣營玩家達 2 次。',
+    rewardTitle: '禁忌大長老',
+    ap: 30,
+    maxProgress: 2,
+    getProgress: (s) => Math.min(2, s.silencedWolvesCount || 0),
+    isUnlocked: (s) => (s.silencedWolvesCount || 0) >= 2,
+  },
+
+  // 9. 攝夢人 (DREAMCATCHER)
+  {
     id: 'dream_master',
+    role: 'DREAMCATCHER',
     title: '莊周夢蝶',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.SILVER,
@@ -345,7 +457,24 @@ export const ACHIEVEMENTS = [
     isUnlocked: (s) => (s.dreamKilledWolf || 0) >= 1,
   },
   {
+    id: 'dream_night_guardian',
+    role: 'DREAMCATCHER',
+    title: '夢境庇護',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.SILVER,
+    icon: '✨',
+    description: '攝夢人入夢好人且該玩家當晚被狼刀，成功免疫夜間傷害達成平安夜！',
+    rewardTitle: '織夢仙靈',
+    ap: 30,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.dreamSavedGood || 0),
+    isUnlocked: (s) => (s.dreamSavedGood || 0) >= 1,
+  },
+
+  // 10. 邱比特 (CUPID)
+  {
     id: 'cupid_matchmaker',
+    role: 'CUPID',
     title: '愛神之箭',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.GOLD,
@@ -358,7 +487,24 @@ export const ACHIEVEMENTS = [
     isUnlocked: (s) => (s.loverWins || 0) >= 1,
   },
   {
+    id: 'cupid_lovers_third_win',
+    role: 'CUPID',
+    title: '人狼絕戀',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.LEGEND,
+    icon: '💖',
+    description: '成功連結人狼戀（好人+狼人），並帶領情侶作為第三方陣營獲得全場唯一勝利！',
+    rewardTitle: '永恆之戀締造者',
+    ap: 50,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.thirdPartyLoversWon || 0),
+    isUnlocked: (s) => (s.thirdPartyLoversWon || 0) >= 1,
+  },
+
+  // 11. 白痴 (IDIOT)
+  {
     id: 'idiot_reveal',
+    role: 'IDIOT',
     title: '大智若愚',
     category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
     tier: ACHIEVEMENT_TIERS.BRONZE,
@@ -370,10 +516,55 @@ export const ACHIEVEMENTS = [
     getProgress: (s) => Math.min(1, s.idiotRevealed || 0),
     isUnlocked: (s) => (s.idiotRevealed || 0) >= 1,
   },
+  {
+    id: 'idiot_lead_victory',
+    role: 'IDIOT',
+    title: '愚者狂想曲',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.GOLD,
+    icon: '🃏',
+    description: '白痴翻牌免死後，持續參與白天發言討論並成功帶領好人陣營獲勝。',
+    rewardTitle: '愚者先知',
+    ap: 35,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.idiotRevealedAndWon || 0),
+    isUnlocked: (s) => (s.idiotRevealedAndWon || 0) >= 1,
+  },
+
+  // 12. 村民 (VILLAGER)
+  {
+    id: 'villager_sherlock',
+    role: 'VILLAGER',
+    title: '平民福爾摩斯',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.SILVER,
+    icon: '🔎',
+    description: '作為無特權的普通村民，在白天放逐投票中累計投中出局 3 名狼人。',
+    rewardTitle: '邏輯柯南',
+    ap: 25,
+    maxProgress: 3,
+    getProgress: (s) => Math.min(3, s.villagerVotedWolvesCount || 0),
+    isUnlocked: (s) => (s.villagerVotedWolvesCount || 0) >= 3,
+  },
+  {
+    id: 'villager_iron_soul',
+    role: 'VILLAGER',
+    title: '平民之光',
+    category: ACHIEVEMENT_CATEGORIES.ROLE_SKILL,
+    tier: ACHIEVEMENT_TIERS.GOLD,
+    icon: '👨‍🌾',
+    description: '作為普通村民全程存活至對局結束，並帶領好人陣營贏得勝利！',
+    rewardTitle: '平民精神領袖',
+    ap: 40,
+    maxProgress: 1,
+    getProgress: (s) => Math.min(1, s.villagerSurvivedWon || 0),
+    isUnlocked: (s) => (s.villagerSurvivedWon || 0) >= 1,
+  },
 
   // ================= 心理博弈 (MIND_GAME) =================
   {
     id: 'lone_wolf_survivor',
+    role: 'WEREWOLF',
     title: '殘狼翻盤',
     category: ACHIEVEMENT_CATEGORIES.MIND_GAME,
     tier: ACHIEVEMENT_TIERS.GOLD,
@@ -387,6 +578,7 @@ export const ACHIEVEMENTS = [
   },
   {
     id: 'wolf_oscar',
+    role: 'WEREWOLF',
     title: '奧斯卡影帝',
     category: ACHIEVEMENT_CATEGORIES.MIND_GAME,
     tier: ACHIEVEMENT_TIERS.GOLD,
@@ -471,12 +663,12 @@ export const ACHIEVEMENTS = [
     category: ACHIEVEMENT_CATEGORIES.SPECIAL,
     tier: ACHIEVEMENT_TIERS.GOLD,
     icon: '🏅',
-    description: '解鎖超過 50% 的榮譽成就（14項以上）。',
+    description: '解鎖超過 50% 的榮譽成就（20項以上）。',
     rewardTitle: '榮譽領主',
     ap: 50,
-    maxProgress: 14,
-    getProgress: (s) => Math.min(14, Object.keys(s.unlockedAchievements || {}).length),
-    isUnlocked: (s) => Object.keys(s.unlockedAchievements || {}).length >= 14,
+    maxProgress: 20,
+    getProgress: (s) => Math.min(20, Object.keys(s.unlockedAchievements || {}).length),
+    isUnlocked: (s) => Object.keys(s.unlockedAchievements || {}).length >= 20,
   },
   {
     id: 'collector_100',
@@ -487,14 +679,14 @@ export const ACHIEVEMENTS = [
     description: '達成全成就大滿貫（解鎖所有其餘成就）！',
     rewardTitle: '傳奇造物神',
     ap: 100,
-    maxProgress: 27,
+    maxProgress: 39,
     getProgress: (s) => {
       const unlockedCount = Object.keys(s.unlockedAchievements || {}).filter((k) => k !== 'collector_100').length;
-      return Math.min(27, unlockedCount);
+      return Math.min(39, unlockedCount);
     },
     isUnlocked: (s) => {
       const unlockedCount = Object.keys(s.unlockedAchievements || {}).filter((k) => k !== 'collector_100').length;
-      return unlockedCount >= 27;
+      return unlockedCount >= 39;
     },
   },
 ];
