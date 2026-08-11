@@ -34,7 +34,7 @@ const DEFAULT_STATS = {
   loreViewedRoles: [],
 
   unlockedAchievements: {}, // { [id]: { unlockedAt: number } }
-  equippedTitle: '新晉村民',
+  equippedTitle: '見習村民',
 };
 
 class AchievementManager {
@@ -62,9 +62,15 @@ class AchievementManager {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
+        let equipped = parsed.equippedTitle || '見習村民';
+        // 若舊版預設為「新晉村民」但尚未解鎖 first_game 成就，平滑遷移至「見習村民」
+        if (equipped === '新晉村民' && !parsed.unlockedAchievements?.['first_game']) {
+          equipped = '見習村民';
+        }
         return {
           ...DEFAULT_STATS,
           ...parsed,
+          equippedTitle: equipped,
           unlockedAchievements: parsed.unlockedAchievements || {},
           loreViewedRoles: parsed.loreViewedRoles || [],
         };
@@ -102,14 +108,18 @@ class AchievementManager {
     this.toastListeners.forEach((fn) => fn(achievement));
   }
 
-  getSummary() {
-    const unlockedMap = this.stats.unlockedAchievements || {};
-    const unlockedCount = Object.keys(unlockedMap).length;
-    const totalCount = ACHIEVEMENTS.length;
+  // ----------------------------------------------------
+  // 統計與摘要查詢
+  // ----------------------------------------------------
 
+  getSummary() {
+    const totalCount = ACHIEVEMENTS.length;
+    let unlockedCount = 0;
     let totalAp = 0;
+
     ACHIEVEMENTS.forEach((ach) => {
-      if (unlockedMap[ach.id]) {
+      if (this.stats.unlockedAchievements[ach.id]) {
+        unlockedCount++;
         totalAp += ach.ap || 0;
       }
     });
@@ -341,7 +351,7 @@ class AchievementManager {
   // ----------------------------------------------------
 
   getAvailableTitles() {
-    const titles = [{ title: '新晉村民', tier: 'BRONZE', unlocked: true, source: '預設稱號' }];
+    const titles = [{ title: '見習村民', tier: 'BRONZE', unlocked: true, source: '預設稱號', icon: '🏷️' }];
 
     ACHIEVEMENTS.forEach((ach) => {
       if (ach.rewardTitle) {

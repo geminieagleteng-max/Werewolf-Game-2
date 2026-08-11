@@ -46,7 +46,7 @@ export const SocketProvider = ({ children }) => {
   // 成就系統與榮譽稱號狀態
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
   const [achievementSummary, setAchievementSummary] = useState(() => achievementManager.getSummary());
-  const [equippedTitle, setEquippedTitle] = useState(() => achievementManager.stats.equippedTitle || '新晉村民');
+  const [equippedTitle, setEquippedTitle] = useState(() => achievementManager.stats.equippedTitle || '見習村民');
 
   // Google 認證與個人檔案狀態
   const [currentUser, setCurrentUser] = useState(() => googleAuthManager.currentUser);
@@ -56,7 +56,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     const unsub = achievementManager.subscribe((newStats, summary) => {
       setAchievementSummary(summary);
-      setEquippedTitle(newStats.equippedTitle || '新晉村民');
+      setEquippedTitle(newStats.equippedTitle || '見習村民');
     });
     return unsub;
   }, []);

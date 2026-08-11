@@ -27,7 +27,7 @@ export const AchievementsModal = ({ isOpen, onClose, playerName }) => {
   if (!isOpen) return null;
 
   const unlockedMap = stats.unlockedAchievements || {};
-  const currentTitle = stats.equippedTitle || '新晉村民';
+  const currentTitle = stats.equippedTitle || '見習村民';
   const rankInfo = summary.rankInfo;
 
   // 過濾成就清單

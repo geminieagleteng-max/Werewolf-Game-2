@@ -290,7 +290,7 @@ export class GoogleAuthManager {
   unbindGoogleAccount() {
     const guestProfile = {
       id: `guest_${Date.now()}`,
-      name: this.currentUser?.name || '新晉村民',
+      name: this.currentUser?.name || '見習村民',
       email: null,
       picture: null,
       authProvider: 'GUEST',
